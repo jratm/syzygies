@@ -136,10 +136,17 @@ FMatrix FMatrix::Gauss()
 
             for (j=pj;j<n;j++)
                 operator()(pi,j) = F->product(x,operator()(pi,j));  // multiply row to make pivot =1 (change basis in image)
-            for (i=pi+1;i<m;i++) if (operator()(i,pj) != 0)
-                for (j=n-1;j>=pj;j--)    // GaussJordan ==> Gauss: changes in this line
-                operator()(i,j) = F->sum(operator()(i,j), F->neg(F->product(operator()(i,pj), operator()(pi,j))));
-                // subtract multiple of pivot row to set the full column to 0  (change basis in image)
+            for (i=pi+1;i<m;i++) if (operator()(i,pj) != 0) {
+                int* pt = &(F->exp[F->log[operator()(i,pj)]]);
+                for (j=n-1;j>=pj;j--) {   // GaussJordan ==> Gauss: changes in this line
+       //             operator()(i,j) = F->sum(operator()(i,j), F->neg(F->product(operator()(i,pj), operator()(pi,j))));
+                    if (operator()(pi,j) != 0) {
+                        int C = F->rebase[F->neg(pt[F->log[operator()(pi,j)]])];
+                        operator()(i,j) = F->unbase[F->rebase[operator()(i,j)]+C];
+                    };
+                    // subtract multiple of pivot row to set the full column to 0  (change basis in image)
+                };
+                };
             pi++;
             pj++;
         }
