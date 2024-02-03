@@ -80,7 +80,7 @@ FLineBundle FCurve::canonical()
 FLineBundle FCurve::point(int p0)
 {
     FLineBundle Lp;
-    int p1 = (F->new_way == true) ? F->rebase[p0] : p0;
+    int p1 = F->encode[p0];
 
     Lp.degree = 1;
     Lp.ratios.resize(genus);

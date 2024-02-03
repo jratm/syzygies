@@ -11,9 +11,6 @@ Field::Field(int p0, int f0)
     create();
     generator();
     tables();
-    Ntables();
-    test_arithmetic();
-//    if (new_way == true) Ntables(); else tables();
 };
 
 
@@ -216,64 +213,64 @@ void Field::generator()
 };
 
 
+//void Field::tables()
+//{
+//    exp.resize(2*q);
+//    log.resize(q);
+//    std::vector<int> x = gen;
+//    negative.resize(q);
+//
+//    // multiplication
+//    exp[0] = 1;
+//    for (int index=1; index<q; index++) {
+//        // find corresponding integer
+//        int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];
+//        int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]);
+//        exp[index] = exp[index+q-1] = n;
+//        log[n] = index;
+//        x = mult(x,gen);
+//        negative[n] = m;
+//    };
+//    log[1]=0;
+//
+//    // addition
+//    int p1 = 2*p-1; int q1=1;
+//    for (int i=0; i<f; i++) q1 *= p1;
+//    rebase.resize(q);
+//    unbase.resize(q1);
+//
+//    std::vector<int> y(f);
+//    for (int index=0; index<q; index++) {
+//        int z = index;
+//        for (int i=0; i<f; i++){
+//            y[i] = z % p;
+//            z /= p;
+//        };
+//        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i];
+//        rebase[index] = n;
+//    };
+//    for (int index=0; index <q1; index++){
+//        int z = index;
+//        for (int i=0; i<f; i++){
+//            y[i] = z % p1;
+//            z /= p1;
+//        };
+//        int n = 0; for (int i=f-1; i>=0; i--) n = n * p + y[i] % p;
+//        unbase[index] = n;
+//    };
+//    std::cout << "all tables completed\n";
+//
+//    return;
+//};
+
+
 void Field::tables()
 {
-    exp.resize(2*q);
-    log.resize(q);
-    std::vector<int> x = gen;
-    negative.resize(q);
-
-    // multiplication
-    exp[0] = 1;
-    for (int index=1; index<q; index++) {
-        // find corresponding integer
-        int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];
-        int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]);
-        exp[index] = exp[index+q-1] = n;
-        log[n] = index;
-        x = mult(x,gen);
-        negative[n] = m;
-    };
-    log[1]=0;
-
-    // addition
     int p1 = 2*p-1; int q1=1;
     for (int i=0; i<f; i++) q1 *= p1;
-    rebase.resize(q);
-    unbase.resize(q1);
-
-    std::vector<int> y(f);
-    for (int index=0; index<q; index++) {
-        int z = index;
-        for (int i=0; i<f; i++){
-            y[i] = z % p;
-            z /= p;
-        };
-        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i];
-        rebase[index] = n;
-    };
-    for (int index=0; index <q1; index++){
-        int z = index;
-        for (int i=0; i<f; i++){
-            y[i] = z % p1;
-            z /= p1;
-        };
-        int n = 0; for (int i=f-1; i>=0; i--) n = n * p + y[i] % p;
-        unbase[index] = n;
-    };
-    std::cout << "all tables completed\n";
-
-    return;
-};
-
-
-void Field::Ntables()
-{
-    int p1 = 2*p-1; int q1=1;
-    for (int i=0; i<f; i++) q1 *= p1;
-    rebaseX.resize(q1);  // p-respresentation --> p1-representation  // should have only q elements
-    unbaseX.resize(q1);  // dirty p1-representation --> (clean) p-representation
-    unbase0X.resize(q1);  // dirty p1-representation --> clean p1-representation
+    encode.resize(q);  // p-respresentation --> p1-representation
+    decode.resize(q1);  // dirty p1-representation --> (clean) p-representation
+    clean.resize(q1);  // dirty p1-representation --> clean p1-representation
 
 
     std::vector<int> y(f);
@@ -284,7 +281,7 @@ void Field::Ntables()
             z /= p;
         };
         int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i];
-        rebaseX[index] = n;
+        encode[index] = n;
     };
     for (int index=0; index <q1; index++){
         int z = index;
@@ -293,32 +290,32 @@ void Field::Ntables()
             z /= p1;
         };
         int n = 0; for (int i=f-1; i>=0; i--) n = n * p + y[i] % p;
-        unbaseX[index] = n;
+        decode[index] = n;
 //        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i] % p1;
 //        unbase0[index] = n;
     };
     for (int index=0; index<q1; index++){
-        unbase0X[index] = rebaseX[unbaseX[index]];
+        clean[index] = encode[decode[index]];
     };
 
-    expX.resize(2*q);
-    logX.resize(q1);
+    exp.resize(2*q);
+    log.resize(q1);
 
     std::vector<int> x = gen;
-    negativeX.resize(q1);
+    negative.resize(q1);
 
-    expX[0] = 1;
+    exp[0] = 1;
     for (int index=1; index<q; index++) {
         // find corresponding integer
         int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];  //  ???
         int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]); // ??????
-        expX[index] = expX[index+q-1] = rebaseX[n];
-        logX[rebaseX[n]] = index;
+        exp[index] = exp[index+q-1] = encode[n];
+        log[encode[n]] = index;
         x = mult(x,gen);
-        negativeX[rebaseX[n]] = rebaseX[m];
+        negative[encode[n]] = encode[m];
     };
 
-    logX[1]=0;
+    log[1]=0;
 
     std::cout << "all tables completed\n";
 
@@ -326,53 +323,14 @@ void Field::Ntables()
 };
 
 
-void Field::test_arithmetic()
-{
-    std::cout << "testing addition\n";
-    for (int i=0; i<q; i++) for (int j=0;j<q;j++){
-        int sum_old = unbase[rebase[i]+rebase[j]];
-        int sum_new = unbaseX[unbase0X[rebaseX[i]+rebaseX[j]]];
-//        std::cout << sum_old-sum_new << " " ;
-    };
-    std::cout << "\n";
-    for (int i=0; i<q; i++){
-        int i1 = negative[i];
-        int i2 = negativeX[rebase[i]];
-        int i3 = unbaseX[i2];
-//        std::cout << i1-i3 << " ";
-    }
-    std::cout << "\n";
-
-    std::cout << "testing multiplication\n";
-    for (int i=0; i<q; i++) for (int j=0;j<q;j++){
-        int product_old = exp[log[i]+log[j]];
-        int product_new = unbase[expX[logX[ rebaseX[i]] + logX[rebaseX[j]]]];
-//        std::cout << product_old << " " << product_old-product_new << " " ;
-    };
-    std::cout << "\n";
-    for (int i=0; i<q; i++){
-        int i1 = negative[i];
-        int i2 = negativeX[rebase[i]];
-        int i3 = unbaseX[i2];
-//        std::cout << i1-i3 << " ";
-    }
-    std::cout << "\n";
-
-    return;
-}
-
-
-
 int Field::inverse(int x)
 {
-    if (new_way == true) return expX[q-1-logX[x]];
     return exp[q-1-log[x]];
 };
 
 
 int Field::neg(int x)
 {
-    if (new_way == true) return negativeX[x];
     return negative[x];
 };
 
@@ -380,11 +338,6 @@ int Field::neg(int x)
 int Field::product(int x, int y)
 {
     if (x == 0 || y == 0) return 0;
-    if (new_way == true) {
-        int A = logX[x] + logX[y];
-        if (A<0 || A> 800) std::cout << A << " " << logX[x] << " " << logX[y] << "\n";
-        return expX[logX[x]+logX[y]];
-    };
     return exp[log[x]+log[y]];
 };
 
@@ -392,15 +345,7 @@ int Field::product(int x, int y)
 int Field::sum(int x, int y)
 //int Field::sum0(int x, int y)
 {
-    if (new_way == true) return unbase0X[x+y];
-    return unbase[rebase[x]+rebase[y]];
-};
-
-
-int Field::Nsum(int x, int y)
-//int Field::sum(int x, int y)
-{
-    return unbase[x+y];
+    return clean[x+y];
 };
 
 

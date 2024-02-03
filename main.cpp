@@ -12,7 +12,7 @@ int main()
 {
     int g = 11;
 
-    Field F(37,1);
+    Field F(5,3);
 //return 0;
     FCurve C(&F, g);
     FLineBundle L = C.canonical();

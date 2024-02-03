@@ -24,13 +24,9 @@ class FCurve
 {
     public:
         FCurve(Field* F0, int g) : genus(g) {
-                F = F0; nodes.resize(g);
-                if (F->new_way == false)
-                    for (int i=0; i<g; i++) {  nodes[i].p = 2*i+1; nodes[i].q = 2*i+2; }
-                else
-                    for (int i=0; i<g; i++) {  nodes[i].p = F->rebase[2*i+1]; nodes[i].q = F->rebase[2*i+2];
-                };
-        }
+            F = F0; nodes.resize(g);
+            for (int i=0; i<g; i++) {  nodes[i].p = F->encode[2*i+1]; nodes[i].q = F->encode[2*i+2]; };
+        };
         FMatrix morphism(FLineBundle&);
         FLineBundle canonical();
         FLineBundle point(int);
