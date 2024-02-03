@@ -10,9 +10,10 @@ long choose(int a, int b);
 
 int main()
 {
-    int g = 13;
+    int g = 11;
 
-    Field F(7,3);
+    Field F(37,1);
+//return 0;
     FCurve C(&F, g);
     FLineBundle L = C.canonical();
     std::cout << "\ngenus = " << g << "\n\n";

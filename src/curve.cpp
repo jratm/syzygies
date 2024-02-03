@@ -80,6 +80,7 @@ FLineBundle FCurve::canonical()
 FLineBundle FCurve::point(int p0)
 {
     FLineBundle Lp;
+    int p1 = (F->new_way == true) ? F->rebase[p0] : p0;
 
     Lp.degree = 1;
     Lp.ratios.resize(genus);
@@ -87,7 +88,7 @@ FLineBundle FCurve::point(int p0)
 
     for (int i=0; i<genus; i++)
     {
-        int res = F->product(F->sum(nodes[i].p, F->neg(p0)), F->inverse(F->sum(nodes[i].q, F->neg(p0))));
+        int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
         Lp.ratios[i] = res;
     }
 
@@ -266,5 +267,6 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
     };
 
     MM.Gauss();
+//    MM.GaussJordan();
     return MM.rk;
 }

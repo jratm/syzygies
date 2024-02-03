@@ -137,15 +137,30 @@ FMatrix FMatrix::Gauss()
             for (j=pj;j<n;j++)
                 operator()(pi,j) = F->product(x,operator()(pi,j));  // multiply row to make pivot =1 (change basis in image)
             for (i=pi+1;i<m;i++) if (operator()(i,pj) != 0) {
-                int* pt = &(F->exp[F->log[F->neg(operator()(i,pj))]]);
-                for (j=n-1;j>=pj;j--) {
+                if (F->new_way == false) {
+                    int* pt = &(F->exp[F->log[F->neg(operator()(i,pj))]]);
+                    for (j=n-1;j>=pj;j--) {
+           //             operator()(i,j) = F->sum(operator()(i,j), F->neg(F->product(operator()(i,pj), operator()(pi,j))));
+                        if (operator()(pi,j) != 0) {
+                            int C = F->rebase[pt[F->log[operator()(pi,j)]]];
+                            operator()(i,j) = F->unbase[F->rebase[operator()(i,j)]+C];
+    //                        operator()(i,j) = F->unbase[operator()(i,j)+pt[F->log[operator()(pi,j)]]];
+                        };
+                    };
+                } else {
+                    int* pt = &(F->expX[F->logX[F->neg(operator()(i,pj))]]);
+                    for (j=n-1;j>=pj;j--) {
        //             operator()(i,j) = F->sum(operator()(i,j), F->neg(F->product(operator()(i,pj), operator()(pi,j))));
-                    if (operator()(pi,j) != 0) {
-                        int C = F->rebase[pt[F->log[operator()(pi,j)]]];
-                        operator()(i,j) = F->unbase[F->rebase[operator()(i,j)]+C];
+                        if (operator()(pi,j) != 0) {
+                            int C = pt[F->logX[operator()(pi,j)]];
+                            operator()(i,j) = F->unbase0X[operator()(i,j)+C];
+    //                        operator()(i,j) = F->unbase[operator()(i,j)+pt[F->log[operator()(pi,j)]]];
+                        };
                     };
                 };
             };
+
+
             pi++;
             pj++;
         }
@@ -185,12 +200,21 @@ FMatrix FMatrix::Transpose()
 
 void FMatrix::prout()
 {
-    for (int i=0; i<m; i++)
-    {
-        for (int j=0; j<n; j++) std::cout << operator()(i,j) << " ";
+    if (F->new_way == true){
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++) std::cout << F->unbase[operator()(i,j)] << " ";
+            std::cout << "\n";
+        };
+        std::cout << "\n";
+    } else{
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++) std::cout << operator()(i,j) << " ";
+            std::cout << "\n";
+        };
         std::cout << "\n";
     };
-    std::cout << "\n";
 }
 
 
