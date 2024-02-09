@@ -3,22 +3,30 @@
 #include "Number.h"
 
 
-//using namespace std;
-
 long choose(int a, int b);
 
 
 int main()
 {
-    int g = 11;
+    int g = 12;
+    Field F(3,4);
+    F.print();
 
-    Field F(5,3);
-//return 0;
-    FCurve C(&F, g);
+    std::vector<node> Cnodes(g);
+    for (int i=0; i<g; i++) {
+        Cnodes[i].p = F.encode[2*i+1];
+        Cnodes[i].q = F.encode[2*i+2];
+    };
+
+    FCurve C(&F, g, Cnodes);
+    C.print();
+
+
+    BettiTable K(&C);
+    K.print();
+    return 0;
+
     FLineBundle L = C.canonical();
-    std::cout << "\ngenus = " << g << "\n\n";
-//    for (int p=1; p<=g-2; p++) for (int q=1; q<=3; q++)
-//        C.syzygy(p,q,L);
 
     std::vector<int> chi(g);
     int sign = 1;

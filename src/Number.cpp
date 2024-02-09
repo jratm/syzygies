@@ -150,14 +150,8 @@ void Field::create()
             };
         };
 
-        if (reducible == false) {
-            std::cout << "irreducible: ";
-            for (int i=f; i>=0; i-- ) std::cout << poly[i] << " ";
-            std::cout << "\n";
-            break;
-        };
+        if (reducible == false) break;
     };
-//    std::cout << "failed to find irreducible polynomial\n";
 };
 
 
@@ -176,9 +170,9 @@ void Field::generator()
         };
     if (remainder > 1) primes.push_back(remainder);
 
-    std::cout << "factors of " << q-1 << " are: ";
-    for (auto x : primes) std::cout << x << ", ";
-    std::cout << "\n";
+//    std::cout << "factors of " << q-1 << " are: ";
+//    for (auto x : primes) std::cout << x << ", ";
+//    std::cout << "\n";
 
     for (int n=1; n<q; n++)     // loop over all field elements
     {
@@ -202,66 +196,10 @@ void Field::generator()
             potential_generator = false;
             break;      // no need to check other primes; continue with next higher n
         };
-        if (potential_generator == true) {
-            std::cout << "found generator: ";
-            for (int i=f-1; i>=0; i-- ) std::cout << gen[i] << " ";
-            std::cout << "\n";
-            return;
-        };
+        if (potential_generator == true) return;
     };
     std::cout << "failed to find multiplicative generator\n";
 };
-
-
-//void Field::tables()
-//{
-//    exp.resize(2*q);
-//    log.resize(q);
-//    std::vector<int> x = gen;
-//    negative.resize(q);
-//
-//    // multiplication
-//    exp[0] = 1;
-//    for (int index=1; index<q; index++) {
-//        // find corresponding integer
-//        int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];
-//        int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]);
-//        exp[index] = exp[index+q-1] = n;
-//        log[n] = index;
-//        x = mult(x,gen);
-//        negative[n] = m;
-//    };
-//    log[1]=0;
-//
-//    // addition
-//    int p1 = 2*p-1; int q1=1;
-//    for (int i=0; i<f; i++) q1 *= p1;
-//    rebase.resize(q);
-//    unbase.resize(q1);
-//
-//    std::vector<int> y(f);
-//    for (int index=0; index<q; index++) {
-//        int z = index;
-//        for (int i=0; i<f; i++){
-//            y[i] = z % p;
-//            z /= p;
-//        };
-//        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i];
-//        rebase[index] = n;
-//    };
-//    for (int index=0; index <q1; index++){
-//        int z = index;
-//        for (int i=0; i<f; i++){
-//            y[i] = z % p1;
-//            z /= p1;
-//        };
-//        int n = 0; for (int i=f-1; i>=0; i--) n = n * p + y[i] % p;
-//        unbase[index] = n;
-//    };
-//    std::cout << "all tables completed\n";
-//
-//    return;
-//};
 
 
 void Field::tables()
@@ -270,7 +208,7 @@ void Field::tables()
     for (int i=0; i<f; i++) q1 *= p1;
     encode.resize(q);  // p-respresentation --> p1-representation
     decode.resize(q1);  // dirty p1-representation --> (clean) p-representation
-    clean.resize(q1);  // dirty p1-representation --> clean p1-representation
+    normalize.resize(q1);  // dirty p1-representation --> clean p1-representation
 
 
     std::vector<int> y(f);
@@ -295,7 +233,7 @@ void Field::tables()
 //        unbase0[index] = n;
     };
     for (int index=0; index<q1; index++){
-        clean[index] = encode[decode[index]];
+        normalize[index] = encode[decode[index]];
     };
 
     exp.resize(2*q);
@@ -316,8 +254,6 @@ void Field::tables()
     };
 
     log[1]=0;
-
-    std::cout << "all tables completed\n";
 
     return;
 };
@@ -343,22 +279,45 @@ int Field::product(int x, int y)
 
 
 int Field::sum(int x, int y)
-//int Field::sum0(int x, int y)
 {
-    return clean[x+y];
+    return normalize[x+y];
 };
 
 
-//int Field::sum(int x, int y)
-int Field::sum2(int x, int y)
+void Field::print()
 {
-    return x ^ y;
-};
+    std::cout << "Base field properties:\n";
+    std::cout << "     Characteristc        p = " << p << "\n";
+    std::cout << "     Exponent             f = " << f << "\n";
+    std::cout << "     Number of elements   q = " << q << "\n";
+    std::cout << "     Splitting field of the polynomial " ;
+    std::cout << "f =  X^" << f;
+    for (int i=f-1; i>=0; i-- ) if (poly[i] != 0) {
+        std::cout << " + ";
+        if (poly[i]!=1 || i==0) std::cout << poly[i];
+        if (i>0){
+            std::cout << " X";
+            if (i>1){
+                std::cout << "^" << i;
+            };
+        };
+    };
+    std::cout << "\n";
 
+    bool first_term = true;
+    std::cout << "     Generator of the multiplicative group:  g = ";
+    for (int i=f-1; i>=0; i-- ) if (gen[i] != 0) {
+        if (first_term == false) std::cout << " + ";
+        first_term = false;
+        if (gen[i]!=1 || i==0) std::cout << gen[i];
+        if (i>0){
+            std::cout << " X";
+            if (i>1){
+                std::cout << "^" << i;
+            };
+        };
+    };
+    std::cout << "\n\n";
 
-//int Field::sum(int x, int y)
-int Field::sump(int x, int y)
-{
-    int z = x + y;
-    return  (z >= p) ? z - p : z;
+    return;
 };

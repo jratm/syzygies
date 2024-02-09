@@ -23,11 +23,8 @@ struct FLineBundle
 class FCurve
 {
     public:
-        FCurve(Field* F0, int g) : genus(g) {
-            F = F0; nodes.resize(g);
-            for (int i=0; i<g; i++) {  nodes[i].p = F->encode[2*i+1]; nodes[i].q = F->encode[2*i+2]; };
-        };
-        FMatrix morphism(FLineBundle&);
+        FCurve(Field* F0, int g, vector<node> Cnodes) : genus(g), F(F0), nodes(Cnodes) {};
+        FMatrix sections(FLineBundle&);
         FLineBundle canonical();
         FLineBundle point(int);
         int syzygy(int,int,FLineBundle,FLineBundle);
@@ -35,8 +32,25 @@ class FCurve
         int run_K(FLineBundle&,FLineBundle&,FLineBundle&,int);
         int genus;
         Field* F;
+        void print();
     private:
         std::vector<node> nodes;
+};
+
+class BettiTable
+{
+    public:
+        BettiTable(FCurve*);
+        FCurve* C;
+        void print();
+    private:
+        std::vector<int> betti;
+        std::vector<int> dim;
+        std::vector<int> chi;
+        std::vector<int> coimage;
+        int run(int,FMatrix21&);
+        int Koszul(int,int,FLineBundle);
+        int Koszul(int,int,FLineBundle,FLineBundle);
 };
 
 #endif // CURVE_H
