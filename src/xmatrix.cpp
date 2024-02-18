@@ -201,42 +201,21 @@ int FMatrix22::Gauss1()
     int x;
 
     pi=pj=0;
-    int tasks = thread::hardware_concurrency() - 1;
-//    int exchanges = 0;
-/**************************************************************
-//  spawn threads
-***************************************************************/
-    thread t[tasks];
-    for (int i=0; i<tasks; i++) t[i] = thread{&FMatrix22::loop, this};
+    std::vector<int> row(m);
+    for (int i=0; i<m; i++) row[i] = i;
 
     while (pi<m && pj<n)
     {
-        if ( opLarge(pi,pj) )
+        if ( opLarge(row[pi],pj) )
         {
-            x = F->inverse(opLarge(pi,pj));
-
-            for (j=pj;j<n;j++)
-                opLarge(pi,j) = F->product(x,opLarge(pi,j));  // multiply row to make pivot =1 (change basis in image)
-// start loop
-            int num_jobs = 0;
-            Message ms;
-            ms.a = pi; ms.b = pj;
-            for (i=pi+1;i<m;i++) if (opLarge(i,pj) != 0) {
-/**************************************************************
-//  add (pi,pj,i) to task queue
-***************************************************************/
-                ms.c = i;
-                mq.put(ms);
-                num_jobs++;
-            };
-// end loop
-/**************************************************************
-//  wait for completion (count down num_jobs)
-***************************************************************/
-            while (num_jobs > 0){
-                Message ms;
-                mq1.get(ms);
-                num_jobs--;
+            for (i=pi+1;i<m;i++) if (opLarge(row[i],pj) != 0) {
+                int* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
+                for (j=n-1;j>=pj;j--) {
+                    if (opLarge(row[pi],j) != 0) {
+                        int C = pt[F->log[opLarge(row[pi],j)]];
+                        opLarge(row[i],j) = F->normalize[opLarge(row[i],j)+C];
+                    };
+                };
             };
 
             pi++;
@@ -245,30 +224,17 @@ int FMatrix22::Gauss1()
         else
         {
             i = pi+1;
-            while (i != m && opLarge(i,pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
+            while (i < m && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
 
-            if (i != m) {   // swap rows pi and i
-//                exchanges++;
-                for (j=pj;j<n;j++)
+            if (i < m)   // swap rows pi and i
                 {
-                    x = opLarge(i,j);
-                    opLarge(i,j) = opLarge(pi,j);
-                    opLarge(pi,j) = x;
-                }}
+                    x = row[i];
+                    row[i] = row[pi];
+                    row[pi] = x;
+                }
             else pj++;
         }
     }
-/**************************************************************
-//  send stop messages to queue
-***************************************************************/
-    Message ms;
-    ms.a = ms.b = ms.c = -1;
-    for (int i=0;i<n;i++) mq.put(ms);  // stop messages
-/**************************************************************
-//  join threads
-***************************************************************/
-    for (int i=0; i<tasks; i++) t[i].join();
-//std::cout << "used " << exchanges << " row exchanges\n";
     rk = pi;
 
     return rk;
@@ -277,7 +243,7 @@ int FMatrix22::Gauss1()
 
 int FMatrix22::Gauss2()
 {
-    int i,j,pi,pj;
+    int i,pi,pj;
     int x;
 
     pi=pj=0;
@@ -290,14 +256,10 @@ int FMatrix22::Gauss2()
     thread t[tasks];
     for (int i=0; i<tasks; i++) t[i] = thread{&FMatrix22::loop, this};
 
-    while (row[pi]<m && pj<n)
+    while (pi<m && pj<n)
     {
-        if ( opLarge(row[pi],pj) )
+        if ( opLarge(row[pi],pj) != 0)
         {
-            x = F->inverse(opLarge(row[pi],pj));
-            for (j=pj;j<n;j++)
-                opLarge(row[pi],j) = F->product(x,opLarge(row[pi],j));  // multiply row to make pivot =1 (change basis in image)
-
             int jobs = 0;
             Message ms;
             ms.a = row[pi]; ms.b = pj;
@@ -324,9 +286,9 @@ int FMatrix22::Gauss2()
         else
         {
             i = pi+1;
-            while (i != m && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
+            while (i < m && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
 
-            if (i != m) {   // swap rows pi and i
+            if (i < m) {   // swap rows pi and i
                 x = row[i];
                 row[i] = row[pi];
                 row[pi] = x;
@@ -360,7 +322,7 @@ void FMatrix22::loop()
         int pj = ms.b;
         int i = ms.c;
 
-        int* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
+        int* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
         for (int j=n-1;j>=pj;j--) {
             if (opLarge(pi,j) != 0) {
                 int C = pt[F->log[opLarge(pi,j)]];
@@ -370,5 +332,4 @@ void FMatrix22::loop()
 
         mq1.put(ms);  // report completion of task
     }
-    return;
 }

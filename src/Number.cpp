@@ -236,7 +236,7 @@ void Field::tables()
         normalize[index] = encode[decode[index]];
     };
 
-    exp.resize(2*q);
+    exp.resize(3*q);
     log.resize(q1);
 
     std::vector<int> x = gen;
@@ -247,7 +247,7 @@ void Field::tables()
         // find corresponding integer
         int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];  //  ???
         int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]); // ??????
-        exp[index] = exp[index+q-1] = encode[n];
+        exp[index] = exp[index+q-1] = exp[index + 2*q - 2] = encode[n];
         log[encode[n]] = index;
         x = mult(x,gen);
         negative[encode[n]] = encode[m];
@@ -317,7 +317,9 @@ void Field::print()
             };
         };
     };
-    std::cout << "\n\n";
+    std::cout << "\n\nNOTE: Field elements correspond to degree " << f-1 << " polynomials over the prime\n";
+    std::cout << "      field Z/" << p <<". Writing these coefficients in sequence, the resulting word\n";
+    std::cout << "      represents a unique basis " << p << " number in the range between 0 and " << q-1 << ".\n\n";
 
     return;
 };

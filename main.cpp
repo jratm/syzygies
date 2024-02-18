@@ -1,77 +1,60 @@
 #include <iostream>
+#include <random>
+#include <functional>
+#include <chrono>
 #include "curve.h"
 #include "Number.h"
 
 
-long choose(int a, int b);
+void test1();
+void test2();
+
 
 
 int main()
 {
-    int g = 12;
-    Field F(3,4);
-    F.print();
 
-    std::vector<node> Cnodes(g);
-    for (int i=0; i<g; i++) {
-        Cnodes[i].p = F.encode[2*i+1];
-        Cnodes[i].q = F.encode[2*i+2];
-    };
-
-    FCurve C(&F, g, Cnodes);
-    C.print();
-
-
-    BettiTable K(&C);
-    K.print();
-    return 0;
-
-    FLineBundle L = C.canonical();
-
-    std::vector<int> chi(g);
-    int sign = 1;
-    for (int i=0; i<g; i++){
-        int N = (i == 1) ? g : (2*i-1)*(g-1);
-        if (i == 0) N = 1;
-        for (int j=0; j<g; j++){
-            if (i+j < g) chi[i+j] += sign * N * choose(g, j);
-        };
-        sign = -sign;
-    };
-    for (int i=0; i<g; i++ ) std::cout << chi[i] << " ";
-    std::cout << "\n\n";
-
-    std::vector<int> syz(4*(g-1));
-    syz[0] = syz[4*g-5] = 1;
-    for (int p=1; 2*p<g; p++){
-        int r = C.syzygy(p,1,L);
-        syz[(g-1)+p] = syz[(g-1)*2+(g-1-p-1)] = r;
-        syz[(g-1)*2+(p-1)] = syz[(g-1)*2-p] = r + chi[p+1];
-    };
-
-    std::cout << "\n     ";
-    for (int p=0; p<g-1; p++){
-        std::cout.width(4);
-        std::cout << p << " ";
-    };
-    std::cout << "\n";
-    std::cout << "     ";
-    for (int p=0; p<g-1; p++){
-        std::cout << "-----";
-    };
-    std::cout << "\n";
-
-    for (int q=0; q<4; q++){
-        std::cout.width(3);
-        std::cout << q << " |";
-        for (int p=0; p<g-1; p++){
-            std::cout.width(4);
-            std::cout << syz[q*(g-1)+p] << " ";
-        };
-        std::cout << "\n";
-    };
-
-    std::cout << "\ncalculation complete\n";
+//    test1();
+    test2();
     return 0;
 }
 
+
+void test1()
+{
+    Field F(5,4);
+    F.print();
+
+    int g = 11;
+    FCurve C(&F, g);
+    C.print();
+
+    BettiTable K(&C);
+    K.print();
+    return;
+}
+
+
+void test2()
+{
+    Field F(2,7);
+    F.print();
+
+    int g = 11;
+    std::vector<node> nodes(g);
+    for (int i=0; i<g; i++) {
+        nodes[i].p = 2*i+1;
+        nodes[i].q = 2*i+2;
+    };
+
+    for (int i=2*g; i<100; i++){
+        nodes[g-1].q = i;
+        FCurve C(&F, g, nodes);
+        C.print();
+        std::cout << i << ":  ";
+        FLineBundle L = C.canonical();
+        Koszul(5,1,L);
+    }
+
+    return;
+}

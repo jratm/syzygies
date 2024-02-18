@@ -55,7 +55,7 @@ class FMatrix22
         Field* F;
         FMatrix22(Field*, int, int, int, int);
         int& operator()(int i, int j) { return A[i*n+j]; };
-        int& opLarge(INT i, INT j) { return A[i*n+j]; };
+        int& opLarge(INT i, INT j) { return A[(INT)i*n+(INT)j]; };
         int& operator()(int i, int j, int k, int l) { return A[(((INT)(i*r2+j)*c1+k)*(INT)c2+(INT)l)]; };
         int Gauss();
         int Gauss1();

@@ -71,7 +71,6 @@ FLineBundle FCurve::canonical()
         int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
         kan.ratios[i] = res;
     }
-//    morphism(kan);
 
     return kan;
 }
@@ -92,25 +91,11 @@ FLineBundle FCurve::point(int p0)
         Lp.ratios[i] = res;
     }
 
-    sections(Lp);
-
     return Lp;
 }
 
 
-FMatrix FCurve::sections(FLineBundle& L)
-/***
-Each of the g nodes imposes one condition on the degree d=deg functions
-on P^1. Each row of A contains the conditions on the coefficients of
-such a function, using the standard basis for H^0(O(d)).
-
-return value C: The columns of C correspond to degree d functions on P^1
-respecting the prescribed nodes.  Assuming the nodes impose
-independent conditions, there are r+1 of them, providing a map to P^r.
-C has size ( d+1, r+1 ), and the image of the point x (on P^1) is C.x;
-a column (a_0 a_1 ...)^T of C encodes the rational
-function a_0 + a_1 t + a_2 t^2 + ... on P^1
-***/
+FMatrix FCurve::sections(FLineBundle L)
 {
     int i,j,k,l,a,b,c;
 
@@ -132,10 +117,57 @@ function a_0 + a_1 t + a_2 t^2 + ... on P^1
     }
 
     FMatrix C = A.GaussJordan().Nullspace();
-    L.dim = C.n;
 
     return C;
 };
+
+FCurve::FCurve(Field* F0, int g)
+{
+    genus = g;
+    F = F0;
+    nodes.resize(g);
+    std::vector<node> Cnodes = sample_nodes(g, F0->q);
+    for (int i=0; i<g; i++) {
+        nodes[i].p = F->encode[Cnodes[i].p];
+        nodes[i].q = F->encode[Cnodes[i].q];
+    };
+};
+
+
+std::vector<node> FCurve::sample_nodes(int g, int q)
+{
+    int n = 2*g;
+    int N = q-2;
+    std::vector<int> sample(n);
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    auto rand = bind(uniform_real_distribution<double>{0,1},default_random_engine(seed));
+
+    int m = 0;
+
+    for (int t=0; t<q; t++){
+        double u = rand();
+        if ((N-t)*u >= n-m) continue;
+        sample[m] = t+1;
+        m++;
+        if (m == n) break;
+    }
+
+    int j = n-1;
+    while (j>0){
+        double u = rand(); int k = floor(j*u) ;
+        int x = sample[k]; sample[k] = sample[j]; sample[j] = x;
+        j--;
+    };
+
+    std::vector<node> nodes(g);
+    for (int i=0; i<g; i++) {
+        nodes[i].p = sample[2*i];
+        nodes[i].q = sample[2*i+1];
+    };
+
+    return nodes;
+}
+
 
 void FCurve::print()
 {
@@ -146,11 +178,11 @@ void FCurve::print()
         std::cout << "(" << F->decode[nodes[i].p] << "," << F->decode[nodes[i].q] << ")";
         if (i != genus-1) std::cout << ", ";
     };
-    std::cout << "\n\nNOTE: Integers in decimal notation correspond to polynomials as follows:\n";
-    std::cout << "      Each integer has a base p representation with digits between 0 and p-1.\n";
-    std::cout << "      These are the coefficients of a polynomial in the splitting field.\n\n";
+    std::cout << "\n\n";
+
     return;
 };
+
 
 FMatrix21 multTable(FLineBundle L, FLineBundle B)
 {
@@ -160,16 +192,16 @@ FMatrix21 multTable(FLineBundle L, FLineBundle B)
     FMatrix MBL = L.C->sections(LB);
 
 // precalculate the multiplication table  H^0(L) x H^0(B) --> H^0(L tensor B)
-    FMatrix21 M(L.C->F, L.dim, B.dim, LB.dim);    //  if L=B=K, then M has size  ( g x (3g-3) x (5g-5) )
+    FMatrix21 M(L.C->F, ML.n, MB.n, MBL.n);    //  if L=B=K, then M has size  ( g x (3g-3) x (5g-5) )
 
-    for (int i=0; i<L.dim; i++)
-        for (int j=0; j<B.dim; j++)
+    for (int i=0; i<ML.n; i++)
+        for (int j=0; j<MB.n; j++)
         {
             std::vector<int> Lproduct(LB.degree+1);
             for (int i1=0; i1<=L.degree; i1++)
                 for (int i2=0; i2<=B.degree; i2++)
                     Lproduct[i1+i2] = L.C->F->sum(Lproduct[i1+i2], L.C->F->product(ML(i1,i), MB(i2,j)));
-            for (int i3=0; i3<LB.dim; i3++)
+            for (int i3=0; i3<MBL.n; i3++)
                 M(i, j, i3) =  Lproduct[MBL.col_basis[i3]];
         };
 
@@ -177,9 +209,9 @@ FMatrix21 multTable(FLineBundle L, FLineBundle B)
 };
 
 
-int FCurve::syzygy(int p, int q, FLineBundle L, FLineBundle B)
+int Koszul(int p, int q, FLineBundle L, FLineBundle B)
 {
-    FLineBundle B1, B2;
+    FLineBundle B0, B1;
 
     B1 = B;
 
@@ -192,13 +224,16 @@ int FCurve::syzygy(int p, int q, FLineBundle L, FLineBundle B)
         B1 = LBmult(B1, LBinverse(L));
         qq++;
     };
-    B2 = LBmult(B1, L);
+    B0 = LBmult(B1, LBinverse(L));
 
-    int r12 = run_K(L, B1, B2, p);
-    int r01 = choose(L.dim, p+1);
+    FMatrix21 M2 = multTable(L,B1);
+    int r12 = run(p, M2);
+    FMatrix21 M1 = multTable(L,B0);
+//    int r01 = run(p+1, M1);
+    int r01 = choose(M1.a, p+1);
 
-    int m1 = choose(L.dim,p)*B1.dim;
-    int m2 = choose(L.dim,p-1)*B2.dim;
+    int m1 = choose(M1.a, p) * M1.c;
+    int m2 = choose(M2.a, p-1) * M2.c;
 
     cout << "Morphism = ";
     cout.width(5);
@@ -214,94 +249,9 @@ int FCurve::syzygy(int p, int q, FLineBundle L, FLineBundle B)
 }
 
 
-int FCurve::syzygy(int p, int q, FLineBundle L)
+int Koszul(int p, int q, FLineBundle L)
 {
-    return syzygy(p, q, L, LBmult(L,LBinverse(L)));
-}
-
-
-int FCurve::run_K(FLineBundle& L, FLineBundle& B, FLineBundle& LB, int t)
-{
-
-    FMatrix ML = sections(L);
-    FMatrix MB = sections(B);
-    FMatrix MLB = sections(LB);
-
-    FMatrix21 M = multTable(L,B);
-
-/*
-generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
-*/
-// n = L.dim, t as function parameter
-    std::vector<int> c(t+2);
-// step_T1:
-    for (int l=0; l<t; l++) c[l] = l;
-    c[t] = M.a;
-    c[t+1] = 0;
-
-    int l = t-1;
-    int x;
-
-    FMatrix22 MM(F, choose(M.a,t), M.b, choose(M.a,t-1), M.c);
-//    FMatrix MM(F, choose(L.dim,t-1), LB.dim, choose(L.dim,t), B.dim);
-    int srow = 0;
-
-    while (true)
-    {
-// run work
-//        int srow = 0;
-//        for (int k1=0; k1<t; k1++)
-//            srow += choose(c[k1],k1+1);
-
-        for (int k=0; k<t; k++)
-        {
-            // int multiplier = c[k];
-            bool sign = (k % 2) == 0;
-            int trow = 0;
-            for (int k1=0; k1<t; k1++){
-                if (k1 != k)
-                    trow += (k1<k) ? choose(c[k1],k1+1) : choose(c[k1],k1);
-            };
-            // add to result matrix
-            for (int k2=0; k2<M.b; k2++)
-                for (int k3=0; k3<M.c; k3++)
-                {
-                    if (sign)
-                        MM(srow, k2, trow, k3) = F->sum(MM(srow, k2, trow, k3), M(c[k], k2, k3));
-//                        MM(trow, k3, srow, k2) = F->sum(MM(trow, k3, srow, k2), M(c[k], k2, k3));
-                    else
-                        MM(srow, k2, trow, k3) = F->sum(MM(srow, k2, trow, k3), F->neg(M(c[k], k2, k3)));
-//                        MM(trow, k3, srow, k2) = F->sum(MM(trow, k3, srow, k2), F->neg(M(c[k], k2, k3)));
-                };
-        };
-        srow++;
-// step_T2:
-        if (l>=0) x = l+1;
-        else {
-// step_T3:
-            if (c[0]+1 < c[1]){
-                c[0]++;
-                continue;
-            };
-            l = 0;
-// step_T4:
-            do {
-                c[l] = l;
-                l++;
-                x = c[l]+1;
-            }
-            while (x == c[l+1]);
-// step_T5:
-            if (l>=t) break;
-        };
-// step_T6:
-        c[l] = x;
-        l--;
-    };
-
-    MM.Gauss();
-//    MM.GaussJordan();
-    return MM.rk;
+    return Koszul(p, q, L, LBmult(L,LBinverse(L)));
 }
 
 
@@ -333,74 +283,58 @@ BettiTable::BettiTable(FCurve* C0)
     betti[0] = betti[4*g-5] = 1;
     for (int p=1; 2*p<g; p++){
         int r01 = choose(M.a, p+1);
-        int m1 = choose(M.a,p)*M.a;
-        int r = m1-r01-run(p,M);
+        int m1 = choose(M.a, p) * M.a;
+        int r = m1 - r01 - run(p, M);
         betti[(g-1)+p] = betti[(g-1)*2+(g-1-p-1)] = r;
         betti[(g-1)*2+(p-1)] = betti[(g-1)*2-p] = r + chi[p+1];
 
-            int m2 = choose(M.a,p-1)*M.c;
-            cout << "Morphism = ";
-            cout.width(5);
-            cout << m1 << " x ";
-            cout.width(5);
-            cout << m2 << ":  ";
-            cout << "K_(" << p << "," << "1" << ") = ";
-            cout.width(5);
-            cout << r << "\n";
-
+        int m2 = choose(M.a, p-1) * M.c;
+        cout << "Morphism = ";
+        cout.width(5);
+        cout << m1 << " x ";
+        cout.width(5);
+        cout << m2 << ":  ";
+        cout << "K_(" << p << "," << "1" << ") = ";
+        cout.width(5);
+        cout << r << "\n";
     };
-
 };
 
-int BettiTable::Koszul(int p,int q, FLineBundle L)
+
+void BettiTable::print()
 {
-    return Koszul(p, q, L, LBmult(L,LBinverse(L)));
+    int g = C->genus;
+
+    std::cout << "\n     ";
+    for (int p=0; p<g-1; p++){
+        std::cout.width(4);
+        std::cout << p << " ";
+    };
+    std::cout << "\n";
+    std::cout << "     ";
+    for (int p=0; p<g-1; p++){
+        std::cout << "-----";
+    };
+    std::cout << "\n";
+
+    for (int q=0; q<4; q++){
+        std::cout.width(3);
+        std::cout << q << " |";
+        for (int p=0; p<g-1; p++){
+            std::cout.width(4);
+            std::cout << betti[q*(g-1)+p] << " ";
+        };
+        std::cout << "\n";
+    };
 };
 
 
-int BettiTable::Koszul(int p,int q, FLineBundle L, FLineBundle B)
-{
-    FLineBundle B1 = B;
-
-    int qq = q;
-    while (qq>0){
-        B1 = LBmult(B1, L);
-        qq--;
-    };
-    while (qq<0){
-        B1 = LBmult(B1, LBinverse(L));
-        qq++;
-    };
-    FLineBundle B2 = LBmult(B1, L);
-
-    FMatrix21 M2 = multTable(L, B1);
-    int r12 = run(p, M2);
-    FMatrix21 M1 = multTable(L, B1);
-    int r01 = run(p-1, M1);
-
-    int m1 = choose(L.dim,p)*B1.dim;
-    int m2 = choose(L.dim,p-1)*B2.dim;
-
-    cout << "Morphism = ";
-    cout.width(5);
-    cout << m1 << " x ";
-    cout.width(5);
-    cout << m2 << ":  ";
-    cout << "K_(" << p << "," << q << ") = ";
-    cout.width(5);
-    cout << m1-r12-r01 << "\n";
-//    cout << r01 << "," << r12 << "\n";
-
-    return m1-r12-r01;
-};
-
-
-int BettiTable::run(int t, FMatrix21& M)
+int run(int t, FMatrix21& M)
 {
 /*
 generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
 */
-// n = L.dim, t as function parameter
+// n = L.dim = M.a, t as function parameter
     std::vector<int> c(t+2);
 // step_T1:
     for (int l=0; l<t; l++) c[l] = l;
@@ -411,7 +345,6 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
     int x;
 
     FMatrix22 MM(M.F, choose(M.a,t), M.b, choose(M.a,t-1), M.c);
-//    FMatrix MM(F, choose(L.dim,t-1), LB.dim, choose(L.dim,t), B.dim);
     int srow = 0;
 
     while (true)
@@ -461,35 +394,8 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
         l--;
     };
 
+//    MM.Gauss();
     MM.Gauss2();
 
     return MM.rk;
 }
-
-
-void BettiTable::print()
-{
-    int g = C->genus;
-
-    std::cout << "\n     ";
-    for (int p=0; p<g-1; p++){
-        std::cout.width(4);
-        std::cout << p << " ";
-    };
-    std::cout << "\n";
-    std::cout << "     ";
-    for (int p=0; p<g-1; p++){
-        std::cout << "-----";
-    };
-    std::cout << "\n";
-
-    for (int q=0; q<4; q++){
-        std::cout.width(3);
-        std::cout << q << " |";
-        for (int p=0; p<g-1; p++){
-            std::cout.width(4);
-            std::cout << betti[q*(g-1)+p] << " ";
-        };
-        std::cout << "\n";
-    };
-};
