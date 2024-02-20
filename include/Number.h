@@ -30,7 +30,7 @@ class Field
         int p_inverse(int);
         int gcd(std::vector<int>);
         std::vector<int> power(std::vector<int>, int);
-    friend class FMatrix22;
+    friend class Matrix22;
 };
 
 

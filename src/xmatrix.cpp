@@ -21,16 +21,6 @@ void Sync_queue<T>::get(T& val)
 
 /*** FMatrix   ************************************/
 
-FMatrix::FMatrix(Field* F0, int rows, int cols)
-{
-    m = rows;
-    n = cols;
-    F = F0;
-    A.resize(rows*cols);
-    free.resize(n);
-};
-
-
 FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1)
 {
     FMatrix B(F, row1-row0, col1-col0);
@@ -134,17 +124,7 @@ void FMatrix::print()
 
 /*** FMatrix22   ********************************/
 
-FMatrix22::FMatrix22(Field* F0, int rows1, int rows2, int cols1, int cols2)
-{
-    r1 = rows1; r2 = rows2; c1 = cols1; c2 = cols2;
-    m = rows1*rows2;
-    n = cols1*cols2;
-    F = F0;
-    A.resize((INT)m * (INT)n);
-};
-
-
-int FMatrix22::gauss()
+int Matrix22::gauss()
 {
     int i,j,pi,pj;
     int x;
@@ -195,7 +175,7 @@ int FMatrix22::gauss()
 }
 
 
-int FMatrix22::gauss1()
+int Matrix22::gauss1()
 {
     int i,j,pi,pj;
     int x;
@@ -241,7 +221,7 @@ int FMatrix22::gauss1()
 }
 
 
-int FMatrix22::gauss2()
+int Matrix22::gauss2()
 {
     int i,pi,pj;
     int x;
@@ -254,7 +234,7 @@ int FMatrix22::gauss2()
 //  spawn threads
 ***************************************************************/
     thread t[tasks];
-    for (int i=0; i<tasks; i++) t[i] = thread{&FMatrix22::loop, this};
+    for (int i=0; i<tasks; i++) t[i] = thread{&Matrix22::loop, this};
 
     while (pi<m && pj<n)
     {
@@ -312,7 +292,7 @@ int FMatrix22::gauss2()
 }
 
 
-void FMatrix22::loop()
+void Matrix22::loop()
 {
     while( true ) {
         Message ms;

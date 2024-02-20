@@ -8,7 +8,7 @@
 #include <chrono>
 
 
-int run(int, FMatrix21&);
+int run(int, Matrix21&);
 
 
 struct node
@@ -34,7 +34,14 @@ int Koszul(int,int,LineBundle,LineBundle);
 class Curve
 {
     public:
-        Curve(Field*,int);
+        Curve(Field* F0, int g) : genus(g), F(F0) {
+            nodes.resize(g);
+            std::vector<node> Cnodes = sample_nodes(g, F0->q);
+            for (int i=0; i<g; i++) {
+                nodes[i].p = F->encode[Cnodes[i].p];
+                nodes[i].q = F->encode[Cnodes[i].q];
+            };
+        };
         Curve(Field* F0, int g, vector<node> Cnodes) : genus(g), F(F0) {
             nodes.resize(g);
             for (int i=0; i<g; i++) {
@@ -45,7 +52,7 @@ class Curve
         FMatrix sections(LineBundle);
         LineBundle canonical();
         LineBundle point(int);
-        int genus;
+        const int genus;
         Field* F;
         void print();
     private:

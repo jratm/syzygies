@@ -25,7 +25,7 @@ void test1()
     Field F(2,8);
     F.print();
 
-    int g = 13;
+    int g = 12;
     Curve C(&F, g);
     C.print();
 

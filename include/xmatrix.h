@@ -35,25 +35,28 @@ struct Message
 };
 
 
-class FMatrix21
+class Matrix21
 {
     public:
-        int a, b, c;
+        const int a, b, c;
         Field* F;
         int& operator()(int i, int j, int k) { return A[(i*b+j)*c+k]; };
-        FMatrix21(Field* F0, int a0, int b0, int c0) : a(a0), b(b0), c(c0), F(F0) { A.resize(a*b*c);  };
+        Matrix21(Field* F0, int a0, int b0, int c0) : a(a0), b(b0), c(c0), F(F0) { A.resize(a*b*c);  };
     private:
         std::vector<int> A;
 };
 
 
-class FMatrix22
+class Matrix22
 {
     public:
-        int m, n, rk;
-        int r1, r2, c1, c2;
+        const int m, n;
+        const int r1, r2, c1, c2;
         Field* F;
-        FMatrix22(Field*, int, int, int, int);
+        int rk;
+        Matrix22(Field* F0, int rows1, int rows2, int cols1, int cols2) :
+            m(rows1*rows2), n(cols1*cols2), r1(rows1), r2(rows2), c1(cols1), c2(cols2), F(F0)
+            { A.resize((INT)m * (INT)n); };
         int& operator()(int i, int j) { return A[i*n+j]; };
         int& opLarge(INT i, INT j) { return A[(INT)i*n+(INT)j]; };
         int& operator()(int i, int j, int k, int l) { return A[(((INT)(i*r2+j)*c1+k)*(INT)c2+(INT)l)]; };
@@ -71,13 +74,17 @@ class FMatrix22
 class FMatrix
 {
     public:
-        int m, n, rk;
+        const int m, n;
         Field* F;
+        int rk;
         std::vector<int> free;
         std::vector<int> col_basis;
         /*** free[i]=1 indicates that the i-th component can be chosen freely ***/
         /*** col_basis transfers the information from free to the nullspace ***/
-        FMatrix(Field*, int, int);
+//        FMatrix(Field*, int, int);
+        FMatrix(Field* F0, int rows, int cols) :
+            m(rows), n(cols), F(F0)
+            { A.resize(rows*cols); free.resize(n); };
         int& operator()(int i, int j) { return A[i*n+j]; };
         FMatrix& gauss_jordan();
         FMatrix nullspace();

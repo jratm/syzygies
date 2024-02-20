@@ -121,18 +121,6 @@ FMatrix Curve::sections(LineBundle L)
     return C;
 };
 
-Curve::Curve(Field* F0, int g)
-{
-    genus = g;
-    F = F0;
-    nodes.resize(g);
-    std::vector<node> Cnodes = sample_nodes(g, F0->q);
-    for (int i=0; i<g; i++) {
-        nodes[i].p = F->encode[Cnodes[i].p];
-        nodes[i].q = F->encode[Cnodes[i].q];
-    };
-};
-
 
 std::vector<node> Curve::sample_nodes(int g, int q)
 {
@@ -184,7 +172,7 @@ void Curve::print()
 };
 
 
-FMatrix21 multTable(LineBundle L, LineBundle B)
+Matrix21 multTable(LineBundle L, LineBundle B)
 {
     LineBundle LB = LBmult(L,B);
     FMatrix ML = L.C->sections(L);
@@ -192,12 +180,14 @@ FMatrix21 multTable(LineBundle L, LineBundle B)
     FMatrix MBL = L.C->sections(LB);
 
 // precalculate the multiplication table  H^0(L) x H^0(B) --> H^0(L tensor B)
-    FMatrix21 M(L.C->F, ML.n, MB.n, MBL.n);    //  if L=B=K, then M has size  ( g x (3g-3) x (5g-5) )
+    Matrix21 M(L.C->F, ML.n, MB.n, MBL.n);    //  if L=B=K, then M has size  ( g x (3g-3) x (5g-5) )
+
+    std::vector<int> Lproduct(LB.degree+1);
 
     for (int i=0; i<ML.n; i++)
         for (int j=0; j<MB.n; j++)
         {
-            std::vector<int> Lproduct(LB.degree+1);
+            for (auto i=0; i<LB.degree+1; i++) Lproduct[i] = 0;
             for (int i1=0; i1<=L.degree; i1++)
                 for (int i2=0; i2<=B.degree; i2++)
                     Lproduct[i1+i2] = L.C->F->sum(Lproduct[i1+i2], L.C->F->product(ML(i1,i), MB(i2,j)));
@@ -226,9 +216,9 @@ int Koszul(int p, int q, LineBundle L, LineBundle B)
     };
     B0 = LBmult(B1, LBinverse(L));
 
-    FMatrix21 M2 = multTable(L,B1);
+    Matrix21 M2 = multTable(L,B1);
     int r12 = run(p, M2);
-    FMatrix21 M1 = multTable(L,B0);
+    Matrix21 M1 = multTable(L,B0);
 //    int r01 = run(p+1, M1);
     int r01 = choose(M1.a, p+1);
 
@@ -261,7 +251,7 @@ BettiTable::BettiTable(Curve* C0)
     int g = C->genus;
     LineBundle L = C->canonical();
 
-    FMatrix21 M = multTable(L,L);
+    Matrix21 M = multTable(L,L);
     int n = M.a;
 
     betti.resize(4 * (n-1));
@@ -329,7 +319,7 @@ void BettiTable::print()
 };
 
 
-int run(int t, FMatrix21& M)
+int run(int t, Matrix21& M)
 {
 /*
 generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
@@ -344,7 +334,7 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
     int l = t-1;
     int x;
 
-    FMatrix22 MM(M.F, choose(M.a,t), M.b, choose(M.a,t-1), M.c);
+    Matrix22 MM(M.F, choose(M.a,t), M.b, choose(M.a,t-1), M.c);
     int srow = 0;
 
     while (true)
