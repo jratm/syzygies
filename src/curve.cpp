@@ -19,9 +19,9 @@ long choose(int a, int b)
 }
 
 
-FLineBundle LBmult(FLineBundle L_0, FLineBundle L_1)
+LineBundle LBmult(LineBundle L_0, LineBundle L_1)
 {
-    FLineBundle res;
+    LineBundle res;
     res.degree = L_0.degree + L_1.degree;
     res.ratios.resize(L_0.C->genus);
     res.C = L_0.C;
@@ -30,9 +30,9 @@ FLineBundle LBmult(FLineBundle L_0, FLineBundle L_1)
 };
 
 
-FLineBundle LBinverse(FLineBundle L_0)
+LineBundle LBinverse(LineBundle L_0)
 {
-    FLineBundle res;
+    LineBundle res;
     res.degree = -L_0.degree;
     res.ratios.resize(L_0.C->genus);
     res.C = L_0.C;
@@ -41,7 +41,7 @@ FLineBundle LBinverse(FLineBundle L_0)
 }
 
 
-FLineBundle FCurve::canonical()
+LineBundle Curve::canonical()
 {
     int i,j,a,b;
     int deg = 2 * genus - 2;
@@ -59,9 +59,9 @@ FLineBundle FCurve::canonical()
         }
     };
 
-    FMatrix C = A.GaussJordan().Nullspace();
+    FMatrix C = A.gauss_jordan().nullspace();
 
-    FLineBundle kan;
+    LineBundle kan;
     kan.degree = deg;
     kan.ratios.resize(genus);
     kan.C = this;
@@ -76,9 +76,9 @@ FLineBundle FCurve::canonical()
 }
 
 
-FLineBundle FCurve::point(int p0)
+LineBundle Curve::point(int p0)
 {
-    FLineBundle Lp;
+    LineBundle Lp;
     int p1 = F->encode[p0];
 
     Lp.degree = 1;
@@ -95,7 +95,7 @@ FLineBundle FCurve::point(int p0)
 }
 
 
-FMatrix FCurve::sections(FLineBundle L)
+FMatrix Curve::sections(LineBundle L)
 {
     int i,j,k,l,a,b,c;
 
@@ -116,12 +116,12 @@ FMatrix FCurve::sections(FLineBundle L)
         }
     }
 
-    FMatrix C = A.GaussJordan().Nullspace();
+    FMatrix C = A.gauss_jordan().nullspace();
 
     return C;
 };
 
-FCurve::FCurve(Field* F0, int g)
+Curve::Curve(Field* F0, int g)
 {
     genus = g;
     F = F0;
@@ -134,7 +134,7 @@ FCurve::FCurve(Field* F0, int g)
 };
 
 
-std::vector<node> FCurve::sample_nodes(int g, int q)
+std::vector<node> Curve::sample_nodes(int g, int q)
 {
     int n = 2*g;
     int N = q-2;
@@ -169,7 +169,7 @@ std::vector<node> FCurve::sample_nodes(int g, int q)
 }
 
 
-void FCurve::print()
+void Curve::print()
 {
     std::cout << "Curve properties:\n";
     std::cout << "     genus = " << genus << "\n";
@@ -184,9 +184,9 @@ void FCurve::print()
 };
 
 
-FMatrix21 multTable(FLineBundle L, FLineBundle B)
+FMatrix21 multTable(LineBundle L, LineBundle B)
 {
-    FLineBundle LB = LBmult(L,B);
+    LineBundle LB = LBmult(L,B);
     FMatrix ML = L.C->sections(L);
     FMatrix MB = L.C->sections(B);
     FMatrix MBL = L.C->sections(LB);
@@ -209,9 +209,9 @@ FMatrix21 multTable(FLineBundle L, FLineBundle B)
 };
 
 
-int Koszul(int p, int q, FLineBundle L, FLineBundle B)
+int Koszul(int p, int q, LineBundle L, LineBundle B)
 {
-    FLineBundle B0, B1;
+    LineBundle B0, B1;
 
     B1 = B;
 
@@ -249,17 +249,17 @@ int Koszul(int p, int q, FLineBundle L, FLineBundle B)
 }
 
 
-int Koszul(int p, int q, FLineBundle L)
+int Koszul(int p, int q, LineBundle L)
 {
     return Koszul(p, q, L, LBmult(L,LBinverse(L)));
 }
 
 
-BettiTable::BettiTable(FCurve* C0)
+BettiTable::BettiTable(Curve* C0)
 {
     C = C0;
     int g = C->genus;
-    FLineBundle L = C->canonical();
+    LineBundle L = C->canonical();
 
     FMatrix21 M = multTable(L,L);
     int n = M.a;
@@ -394,8 +394,8 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
         l--;
     };
 
-//    MM.Gauss();
-    MM.Gauss2();
+//    MM.gauss();
+    MM.gauss2();
 
     return MM.rk;
 }

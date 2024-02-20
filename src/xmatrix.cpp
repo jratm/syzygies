@@ -31,7 +31,7 @@ FMatrix::FMatrix(Field* F0, int rows, int cols)
 };
 
 
-FMatrix FMatrix::Submatrix(int row0, int row1, int col0, int col1)
+FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1)
 {
     FMatrix B(F, row1-row0, col1-col0);
 
@@ -42,7 +42,7 @@ FMatrix FMatrix::Submatrix(int row0, int row1, int col0, int col1)
 };
 
 
-FMatrix FMatrix::GaussJordan()
+FMatrix FMatrix::gauss_jordan()
 {
     int i,j,pi,pj,x;
 
@@ -85,7 +85,7 @@ FMatrix FMatrix::GaussJordan()
 }
 
 
-FMatrix FMatrix::Nullspace()
+FMatrix FMatrix::nullspace()
 {
     int i,j;
 
@@ -109,7 +109,7 @@ FMatrix FMatrix::Nullspace()
 }
 
 
-FMatrix FMatrix::Transpose()
+FMatrix FMatrix::transpose()
 {
     int i, j;
     FMatrix B(F,n,m);
@@ -144,7 +144,7 @@ FMatrix22::FMatrix22(Field* F0, int rows1, int rows2, int cols1, int cols2)
 };
 
 
-int FMatrix22::Gauss()
+int FMatrix22::gauss()
 {
     int i,j,pi,pj;
     int x;
@@ -195,7 +195,7 @@ int FMatrix22::Gauss()
 }
 
 
-int FMatrix22::Gauss1()
+int FMatrix22::gauss1()
 {
     int i,j,pi,pj;
     int x;
@@ -241,7 +241,7 @@ int FMatrix22::Gauss1()
 }
 
 
-int FMatrix22::Gauss2()
+int FMatrix22::gauss2()
 {
     int i,pi,pj;
     int x;

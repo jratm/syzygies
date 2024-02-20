@@ -16,14 +16,10 @@ Field::Field(int p0, int f0)
 
 int Field::gcd(std::vector <int> h) // return gcd of poly and h
 {
-    std::vector<int> a(f+1);
-    std::vector<int> b(f+1);
-    std::vector<int> c(f+1);
+    auto a = poly;
+    auto b = h;
 
-    for (int i=0; i<=f; i++) a[i]=poly[i];
     int lead_a = f;
-
-    for (int i=0; i<f; i++) b[i] = h[i];
     int lead_b = f-1;
 
     while (true) {
@@ -50,9 +46,8 @@ int Field::gcd(std::vector <int> h) // return gcd of poly and h
             };
         };
     // exchange a and b
-        for (int i=0; i<=lead_b; i++) c[i]=a[i];
-        for (int i=0; i<=lead_b; i++) a[i]=b[i];
-        for (int i=0; i<=lead_b; i++) b[i]=c[i];
+        for (int i=0; i<=lead_b; i++)
+            std::swap( a[i], b[i] );
         lead_a = lead_b;
         lead_b --;
     };

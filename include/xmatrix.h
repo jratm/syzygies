@@ -57,9 +57,9 @@ class FMatrix22
         int& operator()(int i, int j) { return A[i*n+j]; };
         int& opLarge(INT i, INT j) { return A[(INT)i*n+(INT)j]; };
         int& operator()(int i, int j, int k, int l) { return A[(((INT)(i*r2+j)*c1+k)*(INT)c2+(INT)l)]; };
-        int Gauss();
-        int Gauss1();
-        int Gauss2();
+        int gauss();
+        int gauss1();
+        int gauss2();
     private:
         std::vector<int> A;
         Sync_queue<Message> mq;
@@ -79,10 +79,10 @@ class FMatrix
         /*** col_basis transfers the information from free to the nullspace ***/
         FMatrix(Field*, int, int);
         int& operator()(int i, int j) { return A[i*n+j]; };
-        FMatrix GaussJordan();
-        FMatrix Nullspace();
-        FMatrix Transpose();
-        FMatrix Submatrix(int, int, int, int);
+        FMatrix gauss_jordan();
+        FMatrix nullspace();
+        FMatrix transpose();
+        FMatrix submatrix(int, int, int, int);
         void print();
     private:
         std::vector<int> A;

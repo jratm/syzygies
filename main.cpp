@@ -14,8 +14,8 @@ void test2();
 int main()
 {
 
-//    test1();
-    test2();
+    test1();
+//    test2();
     return 0;
 }
 
@@ -25,8 +25,8 @@ void test1()
     Field F(5,4);
     F.print();
 
-    int g = 11;
-    FCurve C(&F, g);
+    int g = 12;
+    Curve C(&F, g);
     C.print();
 
     BettiTable K(&C);
@@ -49,10 +49,10 @@ void test2()
 
     for (int i=2*g; i<100; i++){
         nodes[g-1].q = i;
-        FCurve C(&F, g, nodes);
+        Curve C(&F, g, nodes);
         C.print();
         std::cout << i << ":  ";
-        FLineBundle L = C.canonical();
+        LineBundle L = C.canonical();
         Koszul(5,1,L);
     }
 
