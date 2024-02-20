@@ -12,7 +12,7 @@
 
 
 
-using INT = unsigned int;
+using INT = uint;
 
 
 using namespace std;
@@ -79,7 +79,7 @@ class FMatrix
         /*** col_basis transfers the information from free to the nullspace ***/
         FMatrix(Field*, int, int);
         int& operator()(int i, int j) { return A[i*n+j]; };
-        FMatrix gauss_jordan();
+        FMatrix& gauss_jordan();
         FMatrix nullspace();
         FMatrix transpose();
         FMatrix submatrix(int, int, int, int);

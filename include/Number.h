@@ -27,9 +27,6 @@ class Field
         std::vector<int> negative;
         std::vector<int> normalize;   //
         std::vector<int> mult(std::vector<int>, std::vector<int>);
-        int sum0(int,int);
-        int sum2(int,int);
-        int sump(int,int);
         int p_inverse(int);
         int gcd(std::vector<int>);
         std::vector<int> power(std::vector<int>, int);

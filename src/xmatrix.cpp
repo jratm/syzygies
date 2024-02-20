@@ -42,19 +42,19 @@ FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1)
 };
 
 
-FMatrix FMatrix::gauss_jordan()
+FMatrix& FMatrix::gauss_jordan()
 {
-    int i,j,pi,pj,x;
+    int i,j,pi,pj;
 
     pi=pj=0;
     for (i=0;i<n;i++) free[i]=1;
 
     while (pi<m && pj<n)
     {
-        if ( operator()(pi,pj) )
+        if ( const auto v = operator()(pi,pj) )
         {
             free[pj]=0;  // x_pj is not a free variable
-            x = F->inverse(operator()(pi,pj));
+            const auto x = F->inverse( v );
 
             for (j=pj;j<n;j++)
                 operator()(pi,j) = F->product(x,operator()(pi,j));  // multiply row to make pivot =1 (change basis in image)
@@ -72,7 +72,7 @@ FMatrix FMatrix::gauss_jordan()
             if (i != m)   // swap rows pi and i
                 for (j=pj;j<n;j++)
                 {
-                    x = operator()(i,j);
+                    const auto x = operator()(i,j);
                     operator()(i,j) = operator()(pi,j);
                     operator()(pi,j) = x;
                 }
@@ -322,11 +322,16 @@ void FMatrix22::loop()
         int pj = ms.b;
         int i = ms.c;
 
+        const INT r0 = pi * n;
+        const INT r1 = i * n;
+
         int* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
         for (int j=n-1;j>=pj;j--) {
-            if (opLarge(pi,j) != 0) {
-                int C = pt[F->log[opLarge(pi,j)]];
-                opLarge(i,j) = F->normalize[opLarge(i,j)+C];
+            if ( const int v1 = A[ r0 + j ] )
+            {
+                const int C = pt[ F->log[v1] ];
+                auto& v2 = A[ r1 + j ];
+                v2 = F->normalize[ v2 + C ];
             };
         };
 

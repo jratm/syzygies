@@ -22,10 +22,10 @@ int main()
 
 void test1()
 {
-    Field F(5,4);
+    Field F(2,8);
     F.print();
 
-    int g = 12;
+    int g = 13;
     Curve C(&F, g);
     C.print();
 
