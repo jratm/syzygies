@@ -5,6 +5,8 @@
 
 using namespace std;
 
+Matrix21 reduced(Matrix21);
+void print_line(int,int,int,int,int);
 
 long choose(int a, int b)
 {
@@ -161,10 +163,12 @@ void Curve::print()
 {
     std::cout << "Curve properties:\n";
     std::cout << "     genus = " << genus << "\n";
-    std::cout << "     Nodes as follows: \n";
+    std::cout << "     Nodes in the following points: \n";
     for (int i=0; i<genus; i++){
+        if (i % 6 == 0) std::cout << "          ";
         std::cout << "(" << F->decode[nodes[i].p] << "," << F->decode[nodes[i].q] << ")";
         if (i != genus-1) std::cout << ", ";
+        if (i % 6 == 5) std::cout << "\n";
     };
     std::cout << "\n\n";
 
@@ -225,15 +229,7 @@ int Koszul(int p, int q, LineBundle L, LineBundle B)
     int m1 = choose(M1.a, p) * M1.c;
     int m2 = choose(M2.a, p-1) * M2.c;
 
-    cout << "Morphism = ";
-    cout.width(5);
-    cout << m1 << " x ";
-    cout.width(5);
-    cout << m2 << ":  ";
-    cout << "K_(" << p << "," << q << ") = ";
-    cout.width(5);
-    cout << m1-r12-r01 << "\n";
-//    cout << r01 << "," << r12 << "\n";
+    print_line(m1, m2, p, q, m1-r12-r01);
 
     return m1-r12-r01;
 }
@@ -253,6 +249,9 @@ BettiTable::BettiTable(Curve* C0)
 
     Matrix21 M = multTable(L,L);
     int n = M.a;
+//    Matrix21 M1 = reduced(M);
+    Matrix21 M0 = reduced(M);
+    Matrix21 M1 = reduced(M0);
 
     betti.resize(4 * (n-1));
     dim.resize(g * n);
@@ -272,21 +271,14 @@ BettiTable::BettiTable(Curve* C0)
 
     betti[0] = betti[4*g-5] = 1;
     for (int p=1; 2*p<g; p++){
-        int r01 = choose(M.a, p+1);
-        int m1 = choose(M.a, p) * M.a;
-        int r = m1 - r01 - run(p, M);
+        int r01 = choose(M1.a, p+1);
+        int m1 = choose(M1.a, p) * M1.a;
+        int r = m1 - r01 - run(p, M1);
         betti[(g-1)+p] = betti[(g-1)*2+(g-1-p-1)] = r;
         betti[(g-1)*2+(p-1)] = betti[(g-1)*2-p] = r + chi[p+1];
 
-        int m2 = choose(M.a, p-1) * M.c;
-        cout << "Morphism = ";
-        cout.width(5);
-        cout << m1 << " x ";
-        cout.width(5);
-        cout << m2 << ":  ";
-        cout << "K_(" << p << "," << "1" << ") = ";
-        cout.width(5);
-        cout << r << "\n";
+        int m2 = choose(M1.a, p-1) * M1.c;
+        print_line(m1, m2, p, 1, r);
     };
 };
 
@@ -389,3 +381,84 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
 
     return MM.rk;
 }
+
+
+Matrix21 reduced(Matrix21 M)
+{
+    FMatrix M1(M.F, M.c, M.a * M.b);
+    int g = M.a;
+    std::vector<int> exch(M.a);
+
+    for (int i=0; i<M.a; i++) exch[i] = M.a - 1 - i;
+
+    for (int i=0; i<M.a; i++)
+        for (int j=0; j<M.b; j++)
+            for (int k=0; k<M.c; k++)
+//                M1(k, i * M.b + j) = M(i, j, k);
+                M1(k, i * M.b + j) = M(exch[i], exch[j], k);
+
+    M1.gauss_jordan();
+//    M1.print();
+
+    Matrix21 M2(M.F, M.a-1, M.b-1, M.c-g);
+
+    for (int i=0; i<M2.a; i++)
+        for (int j=0; j<M2.b; j++)
+            for (int k=0; k<M2.c; k++)
+//                M2(i, j, k) = M1(g + k, (i+1)*M.b + j + 1);
+                M2(i, j, k) = M1(g + k, exch[i] * M.b + exch[j]);
+
+    return M2;
+}
+
+
+void print_line(int m1, int m2, int p, int q, int r)
+{
+    cout << "Morphism = ";
+    cout.width(5);
+    cout << m1 << " x ";
+    cout.width(5);
+    cout << m2 << ":  ";
+    cout << "K_(" << p << "," << q << ") = ";
+    cout.width(5);
+    cout << r << "\n";
+};
+
+
+//BettiTable::BettiTable(Curve* C0)
+//{
+//    C = C0;
+//    int g = C->genus;
+//    LineBundle L = C->canonical();
+//
+//    Matrix21 M = multTable(L,L);
+//    int n = M.a;
+//
+//    betti.resize(4 * (n-1));
+//    dim.resize(g * n);
+//    chi.resize(g);
+//    coimage.resize(4*(n-1));
+//
+//    int sign = 1;
+//    for (int i=0; i<g; i++){
+//        int N = (i == 1) ? g : (2*i-1)*(g-1);
+//        if (i == 0) N = 1;
+//        for (int j=0; j<n; j++){
+//            dim[i*g + j] = N * choose(g, j);  // only i=0..3 relevant
+//            if (i+j < g) chi[i+j] += sign * N * choose(g, j);
+//        };
+//        sign = -sign;
+//    };
+//
+//    betti[0] = betti[4*g-5] = 1;
+//    for (int p=1; 2*p<g; p++){
+//        int r01 = choose(M.a, p+1);
+//        int m1 = choose(M.a, p) * M.a;
+//        int r = m1 - r01 - run(p, M);
+//        betti[(g-1)+p] = betti[(g-1)*2+(g-1-p-1)] = r;
+//        betti[(g-1)*2+(p-1)] = betti[(g-1)*2-p] = r + chi[p+1];
+//
+//        int m2 = choose(M.a, p-1) * M.c;
+//        print_line(m1, m2, p, 1, r);
+//    };
+//};
