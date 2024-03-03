@@ -254,26 +254,26 @@ void Field::tables()
 };
 
 
-int Field::inverse(int x)
+SHORT Field::inverse(SHORT x)
 {
     return exp[q-1-log[x]];
 };
 
 
-int Field::neg(int x)
+SHORT Field::neg(SHORT x)
 {
     return negative[x];
 };
 
 
-int Field::product(int x, int y)
+SHORT Field::product(SHORT x, SHORT y)
 {
     if (x == 0 || y == 0) return 0;
     return exp[log[x]+log[y]];
 };
 
 
-int Field::sum(int x, int y)
+SHORT Field::sum(SHORT x, SHORT y)
 {
     return normalize[x+y];
 };

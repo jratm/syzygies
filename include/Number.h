@@ -4,15 +4,17 @@
 #include <vector>
 
 
+using SHORT = short int;
+
 class Field
 {
     public:
         int p, f, q;
-        int inverse(int);
-        int neg(int);
-        int product(int,int);
-        int sum(int,int);
-        std::vector<int> encode;   //
+        SHORT inverse(SHORT);
+        SHORT neg(SHORT);
+        SHORT product(SHORT,SHORT);
+        SHORT sum(SHORT,SHORT);
+        std::vector<SHORT> encode;   //
         std::vector<int> decode;   //
         Field(int,int);
         void print();
@@ -22,10 +24,10 @@ class Field
         void create();
         void generator();
         void tables();
-        std::vector<int> exp;   //
-        std::vector<int> log;   //
-        std::vector<int> negative;
-        std::vector<int> normalize;   //
+        std::vector<SHORT> exp;   //
+        std::vector<SHORT> log;   //
+        std::vector<SHORT> negative;
+        std::vector<SHORT> normalize;   //
         std::vector<int> mult(std::vector<int>, std::vector<int>);
         int p_inverse(int);
         int gcd(std::vector<int>);

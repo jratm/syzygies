@@ -127,7 +127,7 @@ void FMatrix::print()
 int Matrix22::gauss()
 {
     int i,j,pi,pj;
-    int x;
+    SHORT x;
 
     pi=pj=0;
 //    for (i=0;i<n;i++) free[i]=1;
@@ -142,10 +142,10 @@ int Matrix22::gauss()
             for (j=pj;j<n;j++)
                 opLarge(pi,j) = F->product(x,opLarge(pi,j));  // multiply row to make pivot =1 (change basis in image)
             for (i=pi+1;i<m;i++) if (opLarge(i,pj) != 0) {
-                int* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
+                SHORT* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
                 for (j=n-1;j>=pj;j--) {
                     if (opLarge(pi,j) != 0) {
-                        int C = pt[F->log[opLarge(pi,j)]];
+                        SHORT C = pt[F->log[opLarge(pi,j)]];
                         opLarge(i,j) = F->normalize[opLarge(i,j)+C];
                     };
                 };
@@ -189,10 +189,10 @@ int Matrix22::gauss1()
         if ( opLarge(row[pi],pj) )
         {
             for (i=pi+1;i<m;i++) if (opLarge(row[i],pj) != 0) {
-                int* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
+                SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
                 for (j=n-1;j>=pj;j--) {
                     if (opLarge(row[pi],j) != 0) {
-                        int C = pt[F->log[opLarge(row[pi],j)]];
+                        SHORT C = pt[F->log[opLarge(row[pi],j)]];
                         opLarge(row[i],j) = F->normalize[opLarge(row[i],j)+C];
                     };
                 };
@@ -302,14 +302,14 @@ void Matrix22::loop()
         int pj = ms.b;
         int i = ms.c;
 
-        const INT r0 = pi * n;
-        const INT r1 = i * n;
+        const INT r0 = (INT) pi * (INT) n;
+        const INT r1 = (INT )i * (INT) n;
 
-        int* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
+        SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
         for (int j=n-1;j>=pj;j--) {
-            if ( const int v1 = A[ r0 + j ] )
+            if ( const auto v1 = A[ r0 + j ] )
             {
-                const int C = pt[ F->log[v1] ];
+                const SHORT C = pt[ F->log[v1] ];
                 auto& v2 = A[ r1 + j ];
                 v2 = F->normalize[ v2 + C ];
             };

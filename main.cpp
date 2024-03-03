@@ -1,8 +1,5 @@
-#include <iostream>
-#include <random>
-#include <functional>
-#include <chrono>
 #include "curve.h"
+#include "betti.h"
 #include "Number.h"
 
 
@@ -22,31 +19,43 @@ int main()
 
 void test1()
 {
-    Field F(3,5);
+    Field F(2,9);
     F.print();
 
-    int g = 14;
-    Curve C(&F, g);
+    Curve C(&F, 12);
     C.print();
 
-    BettiTable K(&C);
+//    BettiTable K(&C);
+    LineBundle L0 = C.canonical();
+    LineBundle L1 = C.pt();
+//    LineBundle L1 = C.trivial();
+    LineBundle L = LBmult(L0, LBinverse(L1));
+    BettiTable K(&C, L);
     K.print();
+
+//    Field F1(5,3);
+//    F1.print();
+//
+//    Curve C1(&F1, 17);
+//    C1.print();
+//
+//    BettiTable K1(&C1);
+//    K1.print();
+
     return;
 }
 
 
 void test2()
 {
-    Field F(5,4);
+    Field F(3,5);
     F.print();
 
-    int g = 13;
-
-    for (int i=0; i<20; i++){
-        Curve C(&F, g);
-//        C.print();
-    BettiTable K(&C);
-    K.print();
+    for (int i=0; i<2; i++){
+        Curve C(&F, 17);
+        C.print();
+        BettiTable K(&C);
+        K.print();
 //        LineBundle L = C.canonical();
 //        Koszul(3,1,L);
     };

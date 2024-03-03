@@ -12,7 +12,8 @@
 
 
 
-using INT = uint;
+//using INT = uint;
+using INT = long long;
 
 
 using namespace std;
@@ -57,14 +58,14 @@ class Matrix22
         Matrix22(Field* F0, int rows1, int rows2, int cols1, int cols2) :
             m(rows1*rows2), n(cols1*cols2), r1(rows1), r2(rows2), c1(cols1), c2(cols2), F(F0)
             { A.resize((INT)m * (INT)n); };
-        int& operator()(int i, int j) { return A[i*n+j]; };
-        int& opLarge(INT i, INT j) { return A[(INT)i*n+(INT)j]; };
-        int& operator()(int i, int j, int k, int l) { return A[(((INT)(i*r2+j)*c1+k)*(INT)c2+(INT)l)]; };
+        SHORT& operator()(int i, int j) { return A[i*n+j]; };
+        SHORT& opLarge(INT i, INT j) { return A[(INT)i*n+(INT)j]; };
+        SHORT& operator()(int i, int j, int k, int l) { return A[(((INT)(i*r2+j)*c1+k)*(INT)c2+(INT)l)]; };
         int gauss();
         int gauss1();
         int gauss2();
     private:
-        std::vector<int> A;
+        std::vector<SHORT> A;
         Sync_queue<Message> mq;
         Sync_queue<Message> mq1;
         void loop();

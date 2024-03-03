@@ -10,26 +10,14 @@
 
 int run(int, Matrix21&);
 
-
 struct node
 {
     int p, q;
 };
 
-class Curve;
-
-struct LineBundle
-{
-    int degree;
-    int dim;
-    std::vector<int> ratios;
-    Curve* C;
-};
-
-
-int Koszul(int,int,LineBundle);
-int Koszul(int,int,LineBundle,LineBundle);
-
+class LineBundle;
+LineBundle LBinverse(LineBundle);
+LineBundle LBmult(LineBundle,LineBundle);
 
 class Curve
 {
@@ -49,8 +37,10 @@ class Curve
                 nodes[i].q = F->encode[Cnodes[i].q];
             }
         };
-        FMatrix sections(LineBundle);
+        FMatrix sections(LineBundle&);
         LineBundle canonical();
+        LineBundle trivial();
+        LineBundle pt();
         LineBundle point(int);
         const int genus;
         Field* F;
@@ -60,17 +50,18 @@ class Curve
         std::vector<node> nodes;
 };
 
-class BettiTable
+
+class LineBundle
 {
     public:
-        BettiTable(Curve*);
+        LineBundle(Curve* C0, int d) : C(C0), degree(d) { ratios.resize(C0->genus); };
+//        LineBundle() { sections = new FMatrix();};
         Curve* C;
-        void print();
-    private:
-        std::vector<int> betti;
-        std::vector<int> dim;
-        std::vector<int> chi;
-        std::vector<int> coimage;
+        int degree;
+        int dim;
+        std::vector<int> ratios;
+//        FMatrix* sections;
 };
+
 
 #endif // CURVE_H
