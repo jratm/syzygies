@@ -6,6 +6,7 @@
 
 using SHORT = short int;
 
+
 class Field
 {
     public:

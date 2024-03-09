@@ -81,7 +81,7 @@ Matrix21 reduced(Matrix21 M)
                 M1(k, i * M.b + j) = M(exch[i], exch[j], k);
 
     M1.gauss_jordan();
-// Gaussian elimination changes the basis of the image; here the
+// Gaussian elimination changes the basis of the image; here
 // the left-most columns are tested for inclusion in a basis;
 // since we know that the g left-most columns are independent
 // and mapped to zero in the quotient
@@ -101,7 +101,7 @@ Matrix21 reduced(Matrix21 M)
 
 BettiTable::BettiTable(Curve* C0)
 {
-// calculate Betti table for the ca nonical bundle
+// calculate Betti table for the canonical bundle
     C = C0;
     int g = C->genus;
     LineBundle L = C->canonical();
@@ -125,8 +125,6 @@ BettiTable::BettiTable(Curve* C0)
 BettiTable::BettiTable(Curve* C0, LineBundle L)
 {
     C = C0;
-//    int g = C->genus;
-
     initialize(L);
 
     Matrix21 M1 = multTable(L,L);
@@ -321,7 +319,7 @@ int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // retur
     return -1;
 };
 
-
+//******* unused so far ********************
 
 int Koszul(int p, int q, LineBundle& L, LineBundle B)
 {

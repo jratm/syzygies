@@ -42,6 +42,7 @@ class Curve
         LineBundle trivial();
         LineBundle pt();
         LineBundle point(int);
+        LineBundle modify(int,int);
         const int genus;
         Field* F;
         void print();

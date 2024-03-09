@@ -102,6 +102,18 @@ LineBundle Curve::point(int p0)
 }
 
 
+LineBundle Curve::modify(int a, int b)
+{
+    LineBundle L = trivial();
+
+    for (int i=0; i<a; i++) L = LBmult(L, pt());
+    for (int i=0; i<b; i++) L = LBmult(L, LBinverse(pt()));
+
+    return L;
+}
+
+
+
 FMatrix Curve::sections(LineBundle& L)
 {
     int i,j,k,l,a,b,c;

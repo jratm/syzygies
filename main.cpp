@@ -19,7 +19,7 @@ int main()
 
 void test1()
 {
-    Field F(2,9);
+    Field F(3,5);
     F.print();
 
     Curve C(&F, 12);
@@ -27,9 +27,8 @@ void test1()
 
 //    BettiTable K(&C);
     LineBundle L0 = C.canonical();
-    LineBundle L1 = C.pt();
-//    LineBundle L1 = C.trivial();
-    LineBundle L = LBmult(L0, LBinverse(L1));
+    LineBundle L1 = C.modify(9, 6);
+    LineBundle L = LBmult(L0, L1);
     BettiTable K(&C, L);
     K.print();
 
