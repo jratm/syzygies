@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <iostream>
+#include <cstdint>
 #include "Number.h"
 
 #include <thread>
@@ -10,10 +11,7 @@
 #include <list>
 
 
-
-//using INT = uint;
-using INT = long long;
-
+using INT = int64_t;
 
 using namespace std;
 

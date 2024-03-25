@@ -1,10 +1,9 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
 
-
-using SHORT = short int;
-
+using SHORT = int16_t;
 
 class Field
 {
