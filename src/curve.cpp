@@ -6,32 +6,54 @@
 using namespace std;
 
 
-LineBundle LBmult(LineBundle L0, LineBundle L1)
+LineBundle LBmult( const LineBundle& L0, const LineBundle& L1)
 {
     LineBundle res(L0.C, L0.degree + L1.degree);
-    for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->product(L0.ratios[i], L1.ratios[i]);
+
+    for (int i=0; i<L0.C->genus(); i++)
+        res.ratios[i] = L0.C->F->product(L0.ratios[i], L1.ratios[i]);
+
     return res;
 };
 
 
-LineBundle LBinverse(LineBundle L0)
+LineBundle LBinverse(const LineBundle& L0)
 {
     LineBundle res(L0.C, -L0.degree);
-    for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->inverse(L0.ratios[i]);
+    for (int i=0; i<L0.C->genus(); i++)
+        res.ratios[i] = L0.C->F->inverse(L0.ratios[i]);
+
     return res;
 }
 
-
-LineBundle Curve::canonical()
+Curve::Curve(const Field* F0, int g)
+    : Curve( F0, g, sample_nodes(g, F0->elementCount() ) )
 {
-    int i,j,a,b;
-    int deg = 2 * genus - 2;
-    FMatrix A(F, 2 * genus - 1, 2 * genus);
+}
 
-    for (i=0; i<genus; i++)
+Curve::Curve(const Field* F0, int g, const vector<Node>& Cnodes)
+    : F(F0)
+    , m_genus(g)
+{ 
+    nodes.resize(g); 
+
+    for (int i=0; i<g; i++) {
+        nodes[i].p = F->encoded( Cnodes[i].p );
+        nodes[i].q = F->encoded( Cnodes[i].q );
+    } 
+};
+
+LineBundle Curve::canonical() const
+{
+    const int deg = 2 * m_genus - 2;
+    FMatrix A(F, 2 * m_genus - 1, 2 * m_genus);
+
+    for ( int i=0; i<m_genus; i++)
     {
-        a = b = 1;
-        for (j=0; j<deg+1; j++)
+        int a = 1;
+        int b = 1;
+
+        for ( int j=0; j<deg+1; j++)
         {
             A(j,2*i) = a;
             A(j,2*i+1) = b;
@@ -40,13 +62,13 @@ LineBundle Curve::canonical()
         }
     };
 
-    FMatrix C = A.gauss_jordan().nullspace();
+    const FMatrix C = A.gauss_jordan().nullspace();
 
-    LineBundle kan(this, 2 * genus - 2);
+    LineBundle kan(this, 2 * m_genus - 2);
 
-    for (i=0; i<genus; i++)
+    for ( int i=0; i<m_genus; i++)
     {
-        int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
+        const int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
         kan.ratios[i] = res;
     }
 
@@ -54,16 +76,16 @@ LineBundle Curve::canonical()
 }
 
 
-LineBundle Curve::trivial()
+LineBundle Curve::trivial() const
 {
     LineBundle Lp(this, 0);
 
-    for (int i=0; i<genus; i++) Lp.ratios[i] = 1;
+    for (int i=0; i<m_genus; i++) Lp.ratios[i] = 1;
 
     return Lp;
 }
 
-LineBundle Curve::pt()
+LineBundle Curve::pt() const
 {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     auto rand = bind(uniform_real_distribution<double>{0,1},default_random_engine(seed));
@@ -71,30 +93,33 @@ LineBundle Curve::pt()
     int x;
     while (true)
     {
-        double u = rand();
-        x = floor(F->q*u);
+        const double u = rand();
+
+        x = floor(F->elementCount() * u);
         bool success = true;
-        for (int i=0; i<genus; i++)
+        for (int i=0; i<m_genus; i++)
         {
-            if (x == F->decode[nodes[i].p]) success = false;
-            if (x == F->decode[nodes[i].q]) success = false;
+            const auto& node = nodes[i];
+
+            if ( ( x == F->decoded( node.p ) ) || ( x == F->decoded( node.q ) ) )
+                success = false;
         };
-        if (  success == true) break;
+        if ( success == true) break;
     };
 
     return point(x);
 }
 
 
-LineBundle Curve::point(int p0)
+LineBundle Curve::point(int p0) const
 {
     LineBundle Lp(this, 1);
 
-    int p1 = F->encode[p0];
+    const auto p1 = F->encoded(p0);
 
-    for (int i=0; i<genus; i++)
+    for (int i=0; i<m_genus; i++)
     {
-        int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
+        const int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
         Lp.ratios[i] = res;
     }
 
@@ -102,7 +127,7 @@ LineBundle Curve::point(int p0)
 }
 
 
-LineBundle Curve::modify(int a, int b)
+LineBundle Curve::modify(const int a, const int b) const
 {
     LineBundle L = trivial();
 
@@ -114,20 +139,21 @@ LineBundle Curve::modify(int a, int b)
 
 
 
-FMatrix Curve::sections(LineBundle& L)
+FMatrix Curve::sections(const LineBundle& L) const
 {
-    int i,j,k,l,a,b,c;
+    const int deg = L.degree;
+    FMatrix A(F, m_genus, deg+1);
 
-    int deg = L.degree;
-    FMatrix A(F, genus, deg+1);
-
-    for (i=0;i<genus;i++)
+    for ( int i=0;i<m_genus;i++)
     {
-        k = nodes[i].p;
-        l = nodes[i].q;
-        c = L.ratios[i];
-        a = b = 1;
-        for (j=0;j<deg+1;j++)
+        const int k = nodes[i].p;
+        const int l = nodes[i].q;
+        const int c = L.ratios[i];
+
+        int a = 1;
+        int b = 1;
+
+        for ( int j=0;j<deg+1;j++)
         {
             A(i,j) = F->sum(a, F->neg(F->product(b, c)));
             a = F->product(a, k);
@@ -135,18 +161,17 @@ FMatrix Curve::sections(LineBundle& L)
         }
     }
 
-    FMatrix C = A.gauss_jordan().nullspace();
-
-    return C;
+    return A.gauss_jordan().nullspace();
 };
 
 
-std::vector<node> Curve::sample_nodes(int g, int q)
+std::vector<Curve::Node> Curve::sample_nodes(const int g, const int q)
 {
-    int n = 2*g;
-    int N = q-2;
+    const int n = 2*g;
+    const int N = q-2;
+
     std::vector<int> sample(n);
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     auto rand = bind(uniform_real_distribution<double>{0,1},default_random_engine(seed));
 
     int m = 0;
@@ -166,25 +191,26 @@ std::vector<node> Curve::sample_nodes(int g, int q)
         j--;
     };
 
-    std::vector<node> nodes(g);
-    for (int i=0; i<g; i++) {
-        nodes[i].p = sample[2*i];
-        nodes[i].q = sample[2*i+1];
-    };
+    std::vector<Node> nodes(g);
+    for (int i=0; i<g; i++)
+        nodes[i] = { sample[2*i], sample[2*i+1] };
 
     return nodes;
 }
 
 
-void Curve::print()
+void Curve::print() const
 {
     std::cout << "Curve properties:\n";
-    std::cout << "     genus = " << genus << "\n";
+    std::cout << "     genus = " << m_genus << "\n";
     std::cout << "     Nodes in the following points: \n";
-    for (int i=0; i<genus; i++){
+    for (int i=0; i<m_genus; i++){
+
+        const auto& node = nodes[i];
+
         if (i % 6 == 0) std::cout << "          ";
-        std::cout << "(" << F->decode[nodes[i].p] << "," << F->decode[nodes[i].q] << ")";
-        if (i != genus-1) std::cout << ", ";
+        std::cout << "(" << F->decoded( node.p ) << "," << F->decoded( node.q ) << ")";
+        if (i != m_genus-1) std::cout << ", ";
         if (i % 6 == 5) std::cout << "\n";
     };
     std::cout << "\n\n";

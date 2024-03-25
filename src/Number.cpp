@@ -1,26 +1,33 @@
 #include "Number.h"
 #include <iostream>
 
-
-Field::Field(int p0, int f0)
+static inline int multiplied( const int p, const int f )
 {
-    p = p0; f = f0;
-    q = 1;
+    int q = 1;
     for (int i=0; i<f; i++) q *= p;
-    poly.resize(f+1);
+
+    return q;
+}
+
+Field::Field(const int p0, const int f0)
+    : m_p( p0 )
+    , m_f( f0 )
+    , m_q( multiplied( p0, f0 ) )
+{
+    m_poly.resize(m_f+1);
     create();
     generator();
     tables();
 };
 
 
-int Field::gcd(std::vector <int> h) // return gcd of poly and h
+int Field::gcd(const std::vector <int>& h) const // return gcd of poly and h
 {
-    auto a = poly;
-    auto b = h;
+    std::vector <int> a = m_poly;
+    std::vector <int> b = h;
 
-    int lead_a = f;
-    int lead_b = f-1;
+    int lead_a = m_f;
+    int lead_b = m_f-1;
 
     while (true) {
 
@@ -32,15 +39,15 @@ int Field::gcd(std::vector <int> h) // return gcd of poly and h
 
     //  make lead coefficient 1
         int mm = p_inverse(b[lead_b]);
-        for (int i=0; i<=lead_b; i++) b[i] = (b[i] *mm) % p;
+        for (int i=0; i<=lead_b; i++) b[i] = (b[i] *mm) % m_p;
 
     //  get remainder of division
         for (int i=lead_a; i>=lead_b; i--){
             int factor = a[i];
             if (factor != 0){
                 for (int j=0; j<=lead_b; j++){
-                    int term = (a[i+j-lead_b] - factor * b[j]) % p;
-                    if (term < 0) term += p;
+                    int term = (a[i+j-lead_b] - factor * b[j]) % m_p;
+                    if (term < 0) term += m_p;
                     a[i+j-lead_b] = term;
                 };
             };
@@ -55,12 +62,12 @@ int Field::gcd(std::vector <int> h) // return gcd of poly and h
 };
 
 
-std::vector<int> Field::power(std::vector <int> h, int n) // return h^n mod poly
+std::vector<int> Field::power(const std::vector <int>& h, const int n) const // return h^n mod poly
 {
-    std::vector<int> result(2*f+1); result[0]=1;
-    std::vector<int> sq(2*f+1);
+    std::vector<int> result(2*m_f+1); result[0]=1;
+    std::vector<int> sq(2*m_f+1);
 
-    for (int i=0; i<=f; i++) sq[i] = h[i];
+    for (int i=0; i<=m_f; i++) sq[i] = h[i];
 
     if (n % 2 != 0) result = mult(result,sq);
 
@@ -74,12 +81,12 @@ std::vector<int> Field::power(std::vector <int> h, int n) // return h^n mod poly
 };
 
 
-int Field::p_inverse(int x)
+int Field::p_inverse(int x) const
 {
-    int a=1, b=0, g=p, u=0, v=1, w=x;
+    int a=1, b=0, g=m_p, u=0, v=1, w=x;
     int q, t;
 
-    if (w<0) w += p;
+    if (w<0) w += m_p;
     while (w>0)
     {
         q=g/w;
@@ -87,26 +94,26 @@ int Field::p_inverse(int x)
         t=v; v=b-q*v; b=t;
         t=w; w=g-q*w; g=t;
     }
-    if (b<0) b += p;
-    return b % p;
+    if (b<0) b += m_p;
+    return b % m_p;
 }
 
 
-std::vector<int> Field::mult(std::vector<int> a, std::vector<int> b)
+std::vector<int> Field::mult(const std::vector<int>& a, const std::vector<int>& b) const
 {
-    std::vector<int> result(2*f+1);
+    std::vector<int> result(2*m_f+1);
 
-    for (int i=0; i<f; i++)
-        for (int j=0; j<f; j++)
-            result[i+j] = (result[i+j] + a[i]*b[j]) % p;
+    for (int i=0; i<m_f; i++)
+        for (int j=0; j<m_f; j++)
+            result[i+j] = (result[i+j] + a[i]*b[j]) % m_p;
 // reduce modulo poly
-    for (int i=2*f; i>=f; i--){
+    for (int i=2*m_f; i>=m_f; i--){
         int factor = result[i];
         if (factor != 0){
-            for (int j=0; j<=f; j++){
-                int term = (result[i+j-f] - factor*poly[j]) % p;
-                if (term < 0) term += p;
-                result[i+j-f] = term;
+            for (int j=0; j<=m_f; j++){
+                int term = (result[i+j-m_f] - factor * m_poly[j]) % m_p;
+                if (term < 0) term += m_p;
+                result[i+j-m_f] = term;
             };
         };
     };
@@ -118,26 +125,26 @@ std::vector<int> Field::mult(std::vector<int> a, std::vector<int> b)
 void Field::create()
 {
 // calculate with polynomials of degree up to f
-    poly[f] = 1;        // set leading term
+    m_poly[m_f] = 1;        // set leading term
     bool reducible;
 
-    for (int n=0; n<q; n++)     // loop over all possible lower terms
+    for (int n=0; n<m_q; n++)     // loop over all possible lower terms
     {
         int n0=n;
-        for (int i=0; i<f; i++){
-            poly[i] = n0 % p;
-            n0 /= p;
+        for (int i=0; i<m_f; i++){
+            m_poly[i] = n0 % m_p;
+            n0 /= m_p;
         };
 
-        std::vector<int> res(2*f+1); res[1]=1;  // res = X
-        std::vector<int> test(2*f+1);
+        std::vector<int> res(2*m_f+1); res[1]=1;  // res = X
+        std::vector<int> test(2*m_f+1);
 
         reducible = false;
 
-        for (int j=1; 2*j<=f; j++)  //  test for factor of degree j
+        for (int j=1; 2*j<=m_f; j++)  //  test for factor of degree j
         {
-            res = power(res,p);
-            test = res; test[1]--; if (test[1] < 0) test[1] = p-1;
+            res = power(res,m_p);
+            test = res; test[1]--; if (test[1] < 0) test[1] = m_p-1;
 
             if ( gcd(test) == 0){
                 reducible = true;
@@ -153,10 +160,10 @@ void Field::create()
 void Field::generator()
 {
     std::vector<int> primes;
-    gen.resize(f);
+    m_gen.resize(m_f);
 
 // determine prime factors of q-1
-    int remainder = q-1;
+    int remainder = m_q-1;
 
     for (int i=2; i*i<=remainder; i++)
         if (remainder % i == 0){
@@ -169,23 +176,23 @@ void Field::generator()
 //    for (auto x : primes) std::cout << x << ", ";
 //    std::cout << "\n";
 
-    for (int n=1; n<q; n++)     // loop over all field elements
+    for (int n=1; n<m_q; n++)     // loop over all field elements
     {
         int n0=n;
-        for (int i=0; i<f; i++){
-            gen[i] = n0 % p;
-            n0 /= p;
+        for (int i=0; i<m_f; i++){
+            m_gen[i] = n0 % m_p;
+            n0 /= m_p;
         };
 
         bool potential_generator = true;
     // calculate gen^((q-1)/primes[j]) mod poly
         for (auto x : primes){
-            std::vector<int> res(2*f+1);
-            res = power(gen, (q-1)/x);
+            std::vector<int> res(2*m_f+1);
+            res = power(m_gen, (m_q-1)/x);
     // if res == 1 report failure
-            res[0]--; if (res[0]<0) res[0] = p-1;
+            res[0]--; if (res[0]<0) res[0] = m_p-1;
             bool power_is_one = true;
-            for (int k=0; k<f; k++) if ( res[k] != 0 )  { power_is_one = false; break; };
+            for (int k=0; k<m_f; k++) if ( res[k] != 0 )  { power_is_one = false; break; };
             if (power_is_one == false) continue;  // (q-1)/p_j -th power not = 1, proceed to next factor
     //  now (q-1)/p_j -th power is = 1, so n does not generate the multiplicative group of F
             potential_generator = false;
@@ -199,97 +206,71 @@ void Field::generator()
 
 void Field::tables()
 {
-    int p1 = 2*p-1; int q1=1;
-    for (int i=0; i<f; i++) q1 *= p1;
-    encode.resize(q);  // p-respresentation --> p1-representation
-    decode.resize(q1);  // dirty p1-representation --> (clean) p-representation
-    normalize.resize(q1);  // dirty p1-representation --> clean p1-representation
+    const int p1 = 2*m_p-1; int q1=1;
+    for (int i=0; i<m_f; i++) q1 *= p1;
+    m_encode.resize(m_q);  // p-respresentation --> p1-representation
+    m_decode.resize(q1);  // dirty p1-representation --> (clean) p-representation
+    m_normalize.resize(q1);  // dirty p1-representation --> clean p1-representation
 
 
-    std::vector<int> y(f);
-    for (int index=0; index<q; index++) {
+    std::vector<int> y(m_f);
+    for (int index=0; index<m_q; index++) {
         int z = index;
-        for (int i=0; i<f; i++){
-            y[i] = z % p;
-            z /= p;
+        for (int i=0; i<m_f; i++){
+            y[i] = z % m_p;
+            z /= m_p;
         };
-        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i];
-        encode[index] = n;
+        int n = 0; for (int i=m_f-1; i>=0; i--) n = n * p1 + y[i];
+        m_encode[index] = n;
     };
     for (int index=0; index <q1; index++){
         int z = index;
-        for (int i=0; i<f; i++){
+        for (int i=0; i<m_f; i++){
             y[i] = z % p1;
             z /= p1;
         };
-        int n = 0; for (int i=f-1; i>=0; i--) n = n * p + y[i] % p;
-        decode[index] = n;
+        int n = 0; for (int i=m_f-1; i>=0; i--) n = n * m_p + y[i] % m_p;
+        m_decode[index] = n;
 //        int n = 0; for (int i=f-1; i>=0; i--) n = n * p1 + y[i] % p1;
 //        unbase0[index] = n;
     };
     for (int index=0; index<q1; index++){
-        normalize[index] = encode[decode[index]];
+        m_normalize[index] = m_encode[m_decode[index]];
     };
 
-    exp.resize(3*q);
-    log.resize(q1);
+    m_exp.resize(3*m_q);
+    m_log.resize(q1);
 
-    std::vector<int> x = gen;
-    negative.resize(q1);
+    std::vector<int> x = m_gen;
+    m_negative.resize(q1);
 
-    exp[0] = 1;
-    for (int index=1; index<q; index++) {
+    m_exp[0] = 1;
+    for (int index=1; index<m_q; index++) {
         // find corresponding integer
-        int n = 0; for (int i=f-1; i>=0; i--) n = n*p + x[i];  //  ???
-        int m = 0; for (int i=f-1; i>=0; i--) m = m*p + ( x[i]==0 ? 0 : p-x[i]); // ??????
-        exp[index] = exp[index+q-1] = exp[index + 2*q - 2] = encode[n];
-        log[encode[n]] = index;
-        x = mult(x,gen);
-        negative[encode[n]] = encode[m];
+        int n = 0; for (int i=m_f-1; i>=0; i--) n = n*m_p + x[i];  //  ???
+        int m = 0; for (int i=m_f-1; i>=0; i--) m = m*m_p + ( x[i]==0 ? 0 : m_p-x[i]); // ??????
+        m_exp[index] = m_exp[index+m_q-1] = m_exp[index + 2*m_q - 2] = m_encode[n];
+        m_log[m_encode[n]] = index;
+        x = mult(x,m_gen);
+        m_negative[m_encode[n]] = m_encode[m];
     };
 
-    log[1]=0;
+    m_log[1]=0;
 
     return;
 };
 
-
-SHORT Field::inverse(SHORT x)
-{
-    return exp[q-1-log[x]];
-};
-
-
-SHORT Field::neg(SHORT x)
-{
-    return negative[x];
-};
-
-
-SHORT Field::product(SHORT x, SHORT y)
-{
-    if (x == 0 || y == 0) return 0;
-    return exp[log[x]+log[y]];
-};
-
-
-SHORT Field::sum(SHORT x, SHORT y)
-{
-    return normalize[x+y];
-};
-
-
-void Field::print()
+void Field::print() const
 {
     std::cout << "Base field properties:\n";
-    std::cout << "     Characteristc        p = " << p << "\n";
-    std::cout << "     Exponent             f = " << f << "\n";
-    std::cout << "     Number of elements   q = " << q << "\n";
+    std::cout << "     Characteristc        p = " << m_p << "\n";
+    std::cout << "     Exponent             f = " << m_f << "\n";
+    std::cout << "     Number of elements   q = " << m_q << "\n";
     std::cout << "     Splitting field of the polynomial " ;
-    std::cout << "f =  X^" << f;
-    for (int i=f-1; i>=0; i-- ) if (poly[i] != 0) {
+    std::cout << "f =  X^" << m_f;
+    for (int i=m_f-1; i>=0; i-- ) if (m_poly[i] != 0) {
         std::cout << " + ";
-        if (poly[i]!=1 || i==0) std::cout << poly[i];
+        if (m_poly[i]!=1 || i==0) std::cout << m_poly[i];
         if (i>0){
             std::cout << " X";
             if (i>1){
@@ -301,10 +282,10 @@ void Field::print()
 
     bool first_term = true;
     std::cout << "     Generator of the multiplicative group:  g = ";
-    for (int i=f-1; i>=0; i-- ) if (gen[i] != 0) {
+    for (int i=m_f-1; i>=0; i-- ) if (m_gen[i] != 0) {
         if (first_term == false) std::cout << " + ";
         first_term = false;
-        if (gen[i]!=1 || i==0) std::cout << gen[i];
+        if (m_gen[i]!=1 || i==0) std::cout << m_gen[i];
         if (i>0){
             std::cout << " X";
             if (i>1){
@@ -312,9 +293,9 @@ void Field::print()
             };
         };
     };
-    std::cout << "\n\nNOTE: Field elements correspond to degree " << f-1 << " polynomials over the prime\n";
-    std::cout << "      field Z/" << p <<". Writing these coefficients in sequence, the resulting word\n";
-    std::cout << "      represents a unique basis " << p << " number in the range between 0 and " << q-1 << ".\n\n";
+    std::cout << "\n\nNOTE: Field elements correspond to degree " << m_f-1 << " polynomials over the prime\n";
+    std::cout << "      field Z/" << m_p <<". Writing these coefficients in sequence, the resulting word\n";
+    std::cout << "      represents a unique basis " << m_p << " number in the range between 0 and " << m_q-1 << ".\n\n";
 
     return;
 };

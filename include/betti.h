@@ -1,30 +1,25 @@
-#ifndef BETTI_INCLUDED
-#define BETTI_INCLUDED
+#pragma once
 
 #include "curve.h"
 
 class LineBundle;
 
-
-int Koszul(int,int,LineBundle&);
-int Koszul(int,int,LineBundle&,LineBundle);
-
+int Koszul(int,int,const LineBundle&);
+int Koszul(int,int,const LineBundle&,const LineBundle&);
 
 class BettiTable
 {
     public:
-        BettiTable(Curve*);
-        BettiTable(Curve*,LineBundle);
-        Curve* C;
-        void print();
+        BettiTable(const Curve*);
+        BettiTable(const Curve*, const LineBundle&);
+        const Curve* const C;
+        void print() const;
     private:
-        void initialize(LineBundle);
-        int h0;  // h0 of line bundle L
-        std::vector<int> betti;
-        std::vector<int> dim;
-        std::vector<int> chi;
-        std::vector<int> coimage;
+        void initialize(const LineBundle&);
+
+        int m_h0;  // h0 of line bundle L
+        std::vector<int> m_betti;
+        std::vector<int> m_dim;
+        std::vector<int> m_chi;
+        std::vector<int> m_coimage;
 };
-
-
-#endif // BETTI_INCLUDED

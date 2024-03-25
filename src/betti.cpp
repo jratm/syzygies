@@ -3,12 +3,12 @@
 #include <iostream>
 
 
-int Fgcd(Field*, std::vector <int>, std::vector <int>, int); // return gcd of p1 and p2
-Matrix21 reduced(Matrix21);
-void print_line(int,int,int,int,int);
+static int Fgcd(const Field*, const std::vector <int>&, const std::vector <int>&, int); // return gcd of p1 and p2
+static Matrix21 reduced(const Matrix21&);
+static void print_line(int,int,int,int,int);
 
 
-long choose(int a, int b)
+static long choose(int a, const int b)
 {
     if (a<b) return 0;
     long ret = 1;
@@ -21,7 +21,7 @@ long choose(int a, int b)
 }
 
 
-Matrix21 multTable(LineBundle& L, LineBundle& B)
+static Matrix21 multTable( const LineBundle& L, const LineBundle& B)
 {
     LineBundle LB = LBmult(L,B);
     FMatrix ML = L.C->sections(L);
@@ -29,47 +29,52 @@ Matrix21 multTable(LineBundle& L, LineBundle& B)
     FMatrix MBL = L.C->sections(LB);
 
 // precalculate the multiplication table  H^0(L) x H^0(B) --> H^0(L tensor B)
-    Matrix21 M(L.C->F, ML.n, MB.n, MBL.n);    //  if L=B=K, then M has size  ( g x g x (3g-3) )
+    Matrix21 M(L.C->F, ML.columnCount(), MB.columnCount(), MBL.columnCount());    //  if L=B=K, then M has size  ( g x g x (3g-3) )
 
     std::vector<int> Lproduct(LB.degree+1);
 
-    for (auto i=0; i<ML.n; i++)
-        for (auto j=0; j<MB.n; j++)
+    for (auto i=0; i<ML.columnCount(); i++)
+        for (auto j=0; j<MB.columnCount(); j++)
         {
             for (auto i=0; i<LB.degree+1; i++) Lproduct[i] = 0;
             for (auto i1=0; i1<=L.degree; i1++)
                 for (auto i2=0; i2<=B.degree; i2++)
                     Lproduct[i1+i2] = L.C->F->sum(Lproduct[i1+i2], L.C->F->product(ML(i1,i), MB(i2,j)));
-            for (auto i3=0; i3<MBL.n; i3++)
-                M(i, j, i3) =  Lproduct[MBL.col_basis[i3]];
+            for (auto i3=0; i3<MBL.columnCount(); i3++)
+                M(i, j, i3) = Lproduct[MBL.columnBasis(i3) ];
         };
 // we want to reduce the matrix by two hyperplane sections
 // by construction, the lower part of ML is the unit matrix
 // This necessitates to reduce by the leftmost column (otherwise, the point at infinity is ...
 // we also select the column next to it and check (via Fgcd) whether there is a point of C in their intersection
-    int col1, col2;
-    col2 = ML.n; col1 = col2 - 1;
+
+    const int col2 = ML.columnCount();
+    const int col1 = col2 - 1;
 
     std::vector<int> v1(L.degree + 1), v2(L.degree + 1);
 
-    for (int i=0; i<ML.m; i++) v2[i] = ML(i, col2);
-    for (int i=0; i<ML.m; i++) v1[i] = ML(i, col1);
+    for (int i=0; i<ML.rowCount(); i++)
+    {
+        v2[i] = ML(i, col2);
+        v1[i] = ML(i, col1);
+    }
+
     if ( Fgcd(L.C->F, v1, v2, L.degree) != 0)
         std::cout << "success " << col1 << " " << col2 << "\n";
     else
         std::cout << "failure\n";
 
-    Matrix21 M0 = reduced(M);
-    Matrix21 M1 = reduced(M0);
+    const Matrix21 M0 = reduced(M);
+    const Matrix21 M1 = reduced(M0);
 
     return M1;
 };
 
 
-Matrix21 reduced(Matrix21 M)
+static Matrix21 reduced(const Matrix21& M)
 {
     FMatrix M1(M.F, M.c, M.a * M.b);
-    int g = M.a;
+    const int g = M.a;
     std::vector<int> exch(M.a);
 
     for (int i=0; i<M.a; i++) exch[i] = M.a - 1 - i;
@@ -99,70 +104,71 @@ Matrix21 reduced(Matrix21 M)
 }
 
 
-BettiTable::BettiTable(Curve* C0)
+BettiTable::BettiTable(const Curve* C0)
+    : C( C0 )
 {
 // calculate Betti table for the canonical bundle
-    C = C0;
-    int g = C->genus;
-    LineBundle L = C->canonical();
+    const int g = C->genus();
+    const LineBundle L = C->canonical();
     initialize(L);
 
-    Matrix21 M1 = multTable(L,L);
-    betti[0] = betti[4*g-5] = 1;
+    const Matrix21 M1 = multTable(L,L);
+
+    m_betti[0] = m_betti[4*g-5] = 1;
 
     for (auto p=1; 2*p<g; p++){
         int r01 = choose(M1.a, p+1);
         int m1 = choose(M1.a, p) * M1.a;
         int m2 = choose(M1.a, p-1) * M1.c;
         int r = m1 - r01 - run(p, M1);
-        betti[(g-1)+p] = betti[(g-1)*2+(g-1-p-1)] = r;
-        betti[(g-1)*2+(p-1)] = betti[(g-1)*2-p] = r + chi[p+1];
+        m_betti[(g-1)+p] = m_betti[(g-1)*2+(g-1-p-1)] = r;
+        m_betti[(g-1)*2+(p-1)] = m_betti[(g-1)*2-p] = r + m_chi[p+1];
         print_line(m1, m2, p, 1, r);
     };
 };
 
 
-BettiTable::BettiTable(Curve* C0, LineBundle L)
+BettiTable::BettiTable(const Curve* C0, const LineBundle& L)
+    : C( C0 )
 {
-    C = C0;
     initialize(L);
 
-    Matrix21 M1 = multTable(L,L);
-    betti[0] = 1;
+    const Matrix21 M1 = multTable(L,L);
+    m_betti[0] = 1;
 
-    for (auto p=1; p<h0-2; p++){
-        int r01 = choose(M1.a, p+1);
-        int m1 = choose(M1.a, p) * M1.a;
-        int m2 = choose(M1.a, p-1) * M1.c;
-        int r = m1 - r01 - run(p, M1);
-        betti[(h0-1)+p] = r;
-        betti[(h0-1)*2+(p-1)] = r + chi[p+1];
+    for (auto p=1; p<m_h0-2; p++){
+        const int r01 = choose(M1.a, p+1);
+        const int m1 = choose(M1.a, p) * M1.a;
+        const int m2 = choose(M1.a, p-1) * M1.c;
+        const int r = m1 - r01 - run(p, M1);
+        m_betti[(m_h0-1)+p] = r;
+        m_betti[(m_h0-1)*2+(p-1)] = r + m_chi[p+1];
         print_line(m1, m2, p, 1, r);
     };
 };
 
 
-void BettiTable::initialize(LineBundle L)
+void BettiTable::initialize(const LineBundle& L)
 {
-    FMatrix ML = L.C->sections(L);
-    h0 = ML.n; // h^0 L (= g)
+    const FMatrix ML = L.C->sections(L);
+    m_h0 = ML.columnCount(); // h^0 L (= g)
 
-    int g = C->genus;
-    int deg = L.degree;
+    const int g = C->genus();
+    const int deg = L.degree;
 
-    betti.resize(4 * (h0-1));
-    dim.resize(h0 * h0);
-    chi.resize(h0);
-    coimage.resize(4*(h0-1));
+    m_betti.resize(4 * (m_h0-1));
+    m_dim.resize(m_h0 * m_h0);
+    m_chi.resize(m_h0);
+    m_coimage.resize(4*(m_h0-1));
 
     // calculate Euler characteristic of the Koszul complex
     int sign = 1;
-    for (auto i=0; i<h0; i++){
-        int N = (i == 1) ? h0 : i*deg +1-g;
+    for (auto i=0; i<m_h0; i++){
+        int N = (i == 1) ? m_h0 : i*deg +1-g;
         if (i == 0) N = 1;
-        for (auto j=0; j<h0; j++){
-            dim[i*h0 + j] = N * choose(h0, j);  // only i=0..3 relevant
-            if (i+j < h0) chi[i+j] += sign * N * choose(h0, j);
+        for (auto j=0; j<m_h0; j++){
+            m_dim[i*m_h0 + j] = N * choose(m_h0, j);  // only i=0..3 relevant
+            if (i+j < m_h0) m_chi[i+j] += sign * N * choose(m_h0, j);
         };
         sign = -sign;
     };
@@ -171,18 +177,18 @@ void BettiTable::initialize(LineBundle L)
 }
 
 
-void BettiTable::print()
+void BettiTable::print() const
 {
 //    int g = C->genus;
 
     std::cout << "\n     ";
-    for (auto p=0; p<h0-1; p++){
+    for (auto p=0; p<m_h0-1; p++){
         std::cout.width(5);
         std::cout << p << " ";
     };
     std::cout << "\n";
     std::cout << "     ";
-    for (auto p=0; p<h0-1; p++){
+    for (auto p=0; p<m_h0-1; p++){
         std::cout << "------";
     };
     std::cout << "\n";
@@ -190,16 +196,16 @@ void BettiTable::print()
     for (auto q=0; q<4; q++){
         std::cout.width(3);
         std::cout << q << " |";
-        for (auto p=0; p<h0-1; p++){
+        for (auto p=0; p<m_h0-1; p++){
             std::cout.width(5);
-            std::cout << betti[q*(h0-1)+p] << " ";
+            std::cout << m_betti[q*(m_h0-1)+p] << " ";
         };
         std::cout << "\n";
     };
 };
 
 
-int run(int t, Matrix21& M)
+int run(const int t, const Matrix21& M)
 {
 /*
 generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
@@ -264,15 +270,14 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
         l--;
     };
 
-//    MM.gauss();
-    MM.gauss2();
-
-    return MM.rk;
+    return MM.gauss2();
 }
 
 
-void print_line(int m1, int m2, int p, int q, int r)
+void print_line(const int m1, const int m2, const int p, const int q, const int r)
 {
+    using namespace std;
+
     cout << "Morphism = ";
     cout.width(5);
     cout << m1 << " x ";
@@ -284,10 +289,10 @@ void print_line(int m1, int m2, int p, int q, int r)
 };
 
 
-int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // return gcd of p1 and p2
+int Fgcd(const Field* F, const std::vector <int>& p1, const std::vector <int>& p2, int deg) // return gcd of p1 and p2
 {
-    auto a = p2;
-    auto b = p1;
+    std::vector <int> a = p2;
+    std::vector <int> b = p1;
 
     int lead_a = deg;
     int lead_b = deg;
@@ -305,7 +310,7 @@ int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // retur
 
     //  get remainder of division
         for (int i=lead_a; i>=lead_b; i--){
-            int factor = a[i];
+            const int factor = a[i];
             if (factor != 0)
                 for (int j=0; j<=lead_b; j++)
                     a[i+j-lead_b] = F->sum(a[i+j-lead_b], F->neg( F->product(factor, b[j])));
@@ -321,7 +326,7 @@ int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // retur
 
 //******* unused so far ********************
 
-int Koszul(int p, int q, LineBundle& L, LineBundle B)
+int Koszul(const int p, const int q, const LineBundle& L, const LineBundle& B)
 {
     LineBundle B1 = B;
 
@@ -334,16 +339,16 @@ int Koszul(int p, int q, LineBundle& L, LineBundle B)
         B1 = LBmult(B1, LBinverse(L));
         qq++;
     };
-    LineBundle B0 = LBmult(B1, LBinverse(L));
+    const LineBundle B0 = LBmult(B1, LBinverse(L));
 
-    Matrix21 M2 = multTable(L,B1);
+    const Matrix21 M2 = multTable(L,B1);
     int r12 = run(p, M2);
-    Matrix21 M1 = multTable(L,B0);
+    const Matrix21 M1 = multTable(L,B0);
     int r01 = run(p+1, M1);
 //    int r01 = choose(M1.a, p+1);
 
-    int m1 = choose(M1.a, p) * M1.c;
-    int m2 = choose(M2.a, p-1) * M2.c;
+    const int m1 = choose(M1.a, p) * M1.c;
+    const int m2 = choose(M2.a, p-1) * M2.c;
 
     print_line(m1, m2, p, q, m1-r12-r01);
 
@@ -351,7 +356,7 @@ int Koszul(int p, int q, LineBundle& L, LineBundle B)
 }
 
 
-int Koszul(int p, int q, LineBundle& L)
+int Koszul(const int p, const int q, const LineBundle& L)
 {
     return Koszul(p, q, L, LBmult(L,LBinverse(L)));
 }

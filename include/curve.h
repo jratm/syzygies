@@ -1,5 +1,4 @@
-#ifndef CURVE_H
-#define CURVE_H
+#pragma once
 
 #include "xmatrix.h"
 #include <vector>
@@ -7,62 +6,53 @@
 #include <functional>
 #include <chrono>
 
-
-int run(int, Matrix21&);
-
-struct node
-{
-    int p, q;
-};
+int run(int, const Matrix21&);
 
 class LineBundle;
-LineBundle LBinverse(LineBundle);
-LineBundle LBmult(LineBundle,LineBundle);
+
+LineBundle LBinverse(const LineBundle&);
+LineBundle LBmult(const LineBundle&, const LineBundle&);
 
 class Curve
 {
+        struct Node { int p, q; };
+
     public:
-        Curve(Field* F0, int g) : genus(g), F(F0) {
-            nodes.resize(g);
-            std::vector<node> Cnodes = sample_nodes(g, F0->q);
-            for (int i=0; i<g; i++) {
-                nodes[i].p = F->encode[Cnodes[i].p];
-                nodes[i].q = F->encode[Cnodes[i].q];
-            };
-        };
-        Curve(Field* F0, int g, vector<node> Cnodes) : genus(g), F(F0) {
-            nodes.resize(g);
-            for (int i=0; i<g; i++) {
-                nodes[i].p = F->encode[Cnodes[i].p];
-                nodes[i].q = F->encode[Cnodes[i].q];
-            }
-        };
-        FMatrix sections(LineBundle&);
-        LineBundle canonical();
-        LineBundle trivial();
-        LineBundle pt();
-        LineBundle point(int);
-        LineBundle modify(int,int);
-        const int genus;
-        Field* F;
-        void print();
+        Curve(const Field* F0, int g);
+        Curve(const Field* F0, int g, const std::vector<Node>& Cnodes);
+
+        FMatrix sections(const LineBundle&) const;
+        LineBundle canonical() const ;
+        LineBundle trivial() const;
+        LineBundle pt() const;
+        LineBundle point(int) const;
+        LineBundle modify(int,int) const;
+
+        void print() const;
+
+        const Field* const F;
+
+        inline int genus() const { return m_genus; }
+
     private:
-        std::vector<node> sample_nodes(int, int);
-        std::vector<node> nodes;
+        const int m_genus;
+
+        std::vector<Node> sample_nodes(int, int);
+        std::vector<Node> nodes;
 };
 
 
 class LineBundle
 {
     public:
-        LineBundle(Curve* C0, int d) : C(C0), degree(d) { ratios.resize(C0->genus); };
-//        LineBundle() { sections = new FMatrix();};
-        Curve* C;
+        LineBundle(const Curve* C0, int d)
+            : C(C0)
+            , degree(d)
+        {
+            ratios.resize(C0->genus());
+        }
+
+        const Curve* C;
         int degree;
-        int dim;
         std::vector<int> ratios;
-//        FMatrix* sections;
 };
-
-
-#endif // CURVE_H
