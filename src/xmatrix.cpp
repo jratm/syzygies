@@ -21,7 +21,7 @@ void Sync_queue<T>::get(T& val)
 
 /*** FMatrix   ************************************/
 
-FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1)
+FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1) const
 {
     FMatrix B(F, row1-row0, col1-col0);
 
@@ -75,7 +75,7 @@ FMatrix& FMatrix::gauss_jordan()
 }
 
 
-FMatrix FMatrix::nullspace()
+FMatrix FMatrix::nullspace() const
 {
     int i,j;
 
@@ -99,20 +99,19 @@ FMatrix FMatrix::nullspace()
 }
 
 
-FMatrix FMatrix::transpose()
+FMatrix FMatrix::transpose() const
 {
-    int i, j;
     FMatrix B(F,n,m);
 
-    for (i=0;i<n;i++)
-        for (j=0;j<m;j++)
+    for (int i=0;i<n;i++)
+        for (int j=0;j<m;j++)
             B(i,j) = operator()(j,i);
 
     return B;
 }
 
 
-void FMatrix::print()
+void FMatrix::print() const
 {
     for (int i=0; i<m; i++)
     {
@@ -142,7 +141,7 @@ int Matrix22::gauss()
             for (j=pj;j<n;j++)
                 opLarge(pi,j) = F->product(x,opLarge(pi,j));  // multiply row to make pivot =1 (change basis in image)
             for (i=pi+1;i<m;i++) if (opLarge(i,pj) != 0) {
-                SHORT* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
+                const SHORT* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
                 for (j=n-1;j>=pj;j--) {
                     if (opLarge(pi,j) != 0) {
                         SHORT C = pt[F->log[opLarge(pi,j)]];
@@ -189,7 +188,7 @@ int Matrix22::gauss1()
         if ( opLarge(row[pi],pj) )
         {
             for (i=pi+1;i<m;i++) if (opLarge(row[i],pj) != 0) {
-                SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
+                const SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
                 for (j=n-1;j>=pj;j--) {
                     if (opLarge(row[pi],j) != 0) {
                         SHORT C = pt[F->log[opLarge(row[pi],j)]];
@@ -305,7 +304,7 @@ void Matrix22::loop()
         const INT r0 = (INT) pi * (INT) n;
         const INT r1 = (INT )i * (INT) n;
 
-        SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
+        const SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
         for (int j=n-1;j>=pj;j--) {
             if ( const auto v1 = A[ r0 + j ] )
             {

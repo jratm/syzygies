@@ -6,8 +6,7 @@
 #include <functional>
 #include <chrono>
 
-
-int run(int, Matrix21&);
+int run(int, const Matrix21&);
 
 struct node
 {
@@ -15,36 +14,37 @@ struct node
 };
 
 class LineBundle;
-LineBundle LBinverse(LineBundle);
-LineBundle LBmult(LineBundle,LineBundle);
+
+LineBundle LBinverse(const LineBundle&);
+LineBundle LBmult(const LineBundle&, const LineBundle&);
 
 class Curve
 {
     public:
-        Curve(Field* F0, int g) : genus(g), F(F0) {
+        Curve(const Field* F0, int g) : genus(g), F(F0) {
             nodes.resize(g);
-            std::vector<node> Cnodes = sample_nodes(g, F0->q);
+            const std::vector<node> Cnodes = sample_nodes(g, F0->q);
             for (int i=0; i<g; i++) {
                 nodes[i].p = F->encode[Cnodes[i].p];
                 nodes[i].q = F->encode[Cnodes[i].q];
             };
         };
-        Curve(Field* F0, int g, vector<node> Cnodes) : genus(g), F(F0) {
+        Curve(const Field* F0, int g, const vector<node>& Cnodes) : genus(g), F(F0) {
             nodes.resize(g);
             for (int i=0; i<g; i++) {
                 nodes[i].p = F->encode[Cnodes[i].p];
                 nodes[i].q = F->encode[Cnodes[i].q];
             }
         };
-        FMatrix sections(LineBundle&);
-        LineBundle canonical();
-        LineBundle trivial();
-        LineBundle pt();
-        LineBundle point(int);
-        LineBundle modify(int,int);
+        FMatrix sections(const LineBundle&) const;
+        LineBundle canonical() const ;
+        LineBundle trivial() const;
+        LineBundle pt() const;
+        LineBundle point(int) const;
+        LineBundle modify(int,int) const;
         const int genus;
-        Field* F;
-        void print();
+        const Field* const F;
+        void print() const;
     private:
         std::vector<node> sample_nodes(int, int);
         std::vector<node> nodes;
@@ -54,9 +54,9 @@ class Curve
 class LineBundle
 {
     public:
-        LineBundle(Curve* C0, int d) : C(C0), degree(d) { ratios.resize(C0->genus); };
+        LineBundle(const Curve* C0, int d) : C(C0), degree(d) { ratios.resize(C0->genus); };
 //        LineBundle() { sections = new FMatrix();};
-        Curve* C;
+        const Curve* C;
         int degree;
         int dim;
         std::vector<int> ratios;

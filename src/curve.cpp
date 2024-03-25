@@ -6,7 +6,7 @@
 using namespace std;
 
 
-LineBundle LBmult(LineBundle L0, LineBundle L1)
+LineBundle LBmult( const LineBundle& L0, const LineBundle& L1)
 {
     LineBundle res(L0.C, L0.degree + L1.degree);
     for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->product(L0.ratios[i], L1.ratios[i]);
@@ -14,7 +14,7 @@ LineBundle LBmult(LineBundle L0, LineBundle L1)
 };
 
 
-LineBundle LBinverse(LineBundle L0)
+LineBundle LBinverse(const LineBundle& L0)
 {
     LineBundle res(L0.C, -L0.degree);
     for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->inverse(L0.ratios[i]);
@@ -22,16 +22,17 @@ LineBundle LBinverse(LineBundle L0)
 }
 
 
-LineBundle Curve::canonical()
+LineBundle Curve::canonical() const
 {
-    int i,j,a,b;
-    int deg = 2 * genus - 2;
+    const int deg = 2 * genus - 2;
     FMatrix A(F, 2 * genus - 1, 2 * genus);
 
-    for (i=0; i<genus; i++)
+    for ( int i=0; i<genus; i++)
     {
-        a = b = 1;
-        for (j=0; j<deg+1; j++)
+        int a = 1;
+        int b = 1;
+
+        for ( int j=0; j<deg+1; j++)
         {
             A(j,2*i) = a;
             A(j,2*i+1) = b;
@@ -40,13 +41,13 @@ LineBundle Curve::canonical()
         }
     };
 
-    FMatrix C = A.gauss_jordan().nullspace();
+    const FMatrix C = A.gauss_jordan().nullspace();
 
     LineBundle kan(this, 2 * genus - 2);
 
-    for (i=0; i<genus; i++)
+    for ( int i=0; i<genus; i++)
     {
-        int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
+        const int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
         kan.ratios[i] = res;
     }
 
@@ -54,7 +55,7 @@ LineBundle Curve::canonical()
 }
 
 
-LineBundle Curve::trivial()
+LineBundle Curve::trivial() const
 {
     LineBundle Lp(this, 0);
 
@@ -63,7 +64,7 @@ LineBundle Curve::trivial()
     return Lp;
 }
 
-LineBundle Curve::pt()
+LineBundle Curve::pt() const
 {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     auto rand = bind(uniform_real_distribution<double>{0,1},default_random_engine(seed));
@@ -86,15 +87,15 @@ LineBundle Curve::pt()
 }
 
 
-LineBundle Curve::point(int p0)
+LineBundle Curve::point(int p0) const
 {
     LineBundle Lp(this, 1);
 
-    int p1 = F->encode[p0];
+    const int p1 = F->encode[p0];
 
     for (int i=0; i<genus; i++)
     {
-        int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
+        const int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
         Lp.ratios[i] = res;
     }
 
@@ -102,7 +103,7 @@ LineBundle Curve::point(int p0)
 }
 
 
-LineBundle Curve::modify(int a, int b)
+LineBundle Curve::modify(const int a, const int b) const
 {
     LineBundle L = trivial();
 
@@ -114,20 +115,21 @@ LineBundle Curve::modify(int a, int b)
 
 
 
-FMatrix Curve::sections(LineBundle& L)
+FMatrix Curve::sections(const LineBundle& L) const
 {
-    int i,j,k,l,a,b,c;
-
-    int deg = L.degree;
+    const int deg = L.degree;
     FMatrix A(F, genus, deg+1);
 
-    for (i=0;i<genus;i++)
+    for ( int i=0;i<genus;i++)
     {
-        k = nodes[i].p;
-        l = nodes[i].q;
-        c = L.ratios[i];
-        a = b = 1;
-        for (j=0;j<deg+1;j++)
+        const int k = nodes[i].p;
+        const int l = nodes[i].q;
+        const int c = L.ratios[i];
+
+        int a = 1;
+        int b = 1;
+
+        for ( int j=0;j<deg+1;j++)
         {
             A(i,j) = F->sum(a, F->neg(F->product(b, c)));
             a = F->product(a, k);
@@ -135,18 +137,17 @@ FMatrix Curve::sections(LineBundle& L)
         }
     }
 
-    FMatrix C = A.gauss_jordan().nullspace();
-
-    return C;
+    return A.gauss_jordan().nullspace();
 };
 
 
-std::vector<node> Curve::sample_nodes(int g, int q)
+std::vector<node> Curve::sample_nodes(const int g, const int q)
 {
-    int n = 2*g;
-    int N = q-2;
+    const int n = 2*g;
+    const int N = q-2;
+
     std::vector<int> sample(n);
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     auto rand = bind(uniform_real_distribution<double>{0,1},default_random_engine(seed));
 
     int m = 0;
@@ -176,7 +177,7 @@ std::vector<node> Curve::sample_nodes(int g, int q)
 }
 
 
-void Curve::print()
+void Curve::print() const
 {
     std::cout << "Curve properties:\n";
     std::cout << "     genus = " << genus << "\n";

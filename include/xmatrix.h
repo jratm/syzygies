@@ -37,9 +37,12 @@ class Matrix21
 {
     public:
         const int a, b, c;
-        Field* F;
+        const Field* F;
+
         int& operator()(int i, int j, int k) { return A[(i*b+j)*c+k]; };
-        Matrix21(Field* F0, int a0, int b0, int c0) : a(a0), b(b0), c(c0), F(F0) { A.resize(a*b*c);  };
+        int operator()(int i, int j, int k) const { return A[(i*b+j)*c+k]; };
+
+        Matrix21(const Field* F0, int a0, int b0, int c0) : a(a0), b(b0), c(c0), F(F0) { A.resize(a*b*c);  };
     private:
         std::vector<int> A;
 };
@@ -50,9 +53,9 @@ class Matrix22
     public:
         const int m, n;
         const int r1, r2, c1, c2;
-        Field* F;
+        const Field* F;
         int rk;
-        Matrix22(Field* F0, int rows1, int rows2, int cols1, int cols2) :
+        Matrix22(const Field* F0, int rows1, int rows2, int cols1, int cols2) :
             m(rows1*rows2), n(cols1*cols2), r1(rows1), r2(rows2), c1(cols1), c2(cols2), F(F0)
             { A.resize((INT)m * (INT)n); };
         SHORT& operator()(int i, int j) { return A[i*n+j]; };
@@ -73,22 +76,25 @@ class FMatrix
 {
     public:
         const int m, n;
-        Field* F;
-        int rk;
+        const Field* const F;
+        int rk = 0;
         std::vector<int> free;
         std::vector<int> col_basis;
         /*** free[i]=1 indicates that the i-th component can be chosen freely ***/
         /*** col_basis transfers the information from free to the nullspace ***/
 //        FMatrix(Field*, int, int);
-        FMatrix(Field* F0, int rows, int cols) :
+        FMatrix(const Field* F0, int rows, int cols) :
             m(rows), n(cols), F(F0)
             { A.resize(rows*cols); free.resize(n); };
+
         int& operator()(int i, int j) { return A[i*n+j]; };
+        int operator()(int i, int j) const { return A[i*n+j]; };
+
         FMatrix& gauss_jordan();
-        FMatrix nullspace();
-        FMatrix transpose();
-        FMatrix submatrix(int, int, int, int);
-        void print();
+        FMatrix nullspace() const;
+        FMatrix transpose() const;
+        FMatrix submatrix(int, int, int, int) const;
+        void print() const ;
     private:
         std::vector<int> A;
 };
