@@ -1,11 +1,9 @@
-#ifndef NUMBER_H
-#define NUMBER_H
+#pragma once
 
 #include <vector>
+#include <cstdint>
 
-
-using SHORT = short int;
-
+using SHORT = int16_t;
 
 class Field
 {
@@ -35,6 +33,3 @@ class Field
         std::vector<int> power(std::vector<int>, int);
     friend class Matrix22;
 };
-
-
-#endif // NUMBER_H

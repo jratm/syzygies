@@ -1,8 +1,8 @@
-#ifndef XMATRIX_H
-#define XMATRIX_H
+#pragma once
 
 #include <vector>
 #include <iostream>
+#include <cstdint>
 #include "Number.h"
 
 #include <thread>
@@ -11,10 +11,7 @@
 #include <list>
 
 
-
-//using INT = uint;
-using INT = long long;
-
+using INT = int64_t;
 
 using namespace std;
 
@@ -95,6 +92,3 @@ class FMatrix
     private:
         std::vector<int> A;
 };
-
-
-#endif // XMATRIX_H
