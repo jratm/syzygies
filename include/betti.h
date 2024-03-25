@@ -16,9 +16,10 @@ class BettiTable
         void print() const;
     private:
         void initialize(const LineBundle&);
-        int h0;  // h0 of line bundle L
-        std::vector<int> betti;
-        std::vector<int> dim;
-        std::vector<int> chi;
-        std::vector<int> coimage;
+
+        int m_h0;  // h0 of line bundle L
+        std::vector<int> m_betti;
+        std::vector<int> m_dim;
+        std::vector<int> m_chi;
+        std::vector<int> m_coimage;
 };

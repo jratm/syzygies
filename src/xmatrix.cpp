@@ -1,23 +1,10 @@
 #include "xmatrix.h"
 #include "Number.h"
 
-
-template<typename T>
-void Sync_queue<T>::put(const T& val)
-{
-    lock_guard<mutex> lck(mtx);
-    q.push_back(val);
-    cond.notify_one();
-}
-
-template<typename T>
-void Sync_queue<T>::get(T& val)
-{
-    unique_lock<mutex> lck(mtx);
-    cond.wait(lck,[this]{ return !q.empty(); });
-    val = q.front();
-    q.pop_front();
-}
+#include <list>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 /*** FMatrix   ************************************/
 
@@ -25,8 +12,8 @@ FMatrix FMatrix::submatrix(int row0, int row1, int col0, int col1) const
 {
     FMatrix B(F, row1-row0, col1-col0);
 
-    for (int i=0; i<B.m; i++)
-        for (int j=0; j<B.n; j++)
+    for (int i=0; i<B.m_rows; i++)
+        for (int j=0; j<B.m_cols; j++)
             B(i,j) = operator()(row0+i, col0+j);
     return B;
 };
@@ -37,18 +24,20 @@ FMatrix& FMatrix::gauss_jordan()
     int i,j,pi,pj;
 
     pi=pj=0;
-    for (i=0;i<n;i++) free[i]=1;
 
-    while (pi<m && pj<n)
+    for (i=0;i<m_cols;i++)
+        m_free[i]=true;
+
+    while (pi<m_rows && pj<m_cols)
     {
         if ( const auto v = operator()(pi,pj) )
         {
-            free[pj]=0;  // x_pj is not a free variable
+            m_free[pj]=false;  // x_pj is not a free variable
             const auto x = F->inverse( v );
 
-            for (j=pj;j<n;j++)
+            for (j=pj;j<m_cols;j++)
                 operator()(pi,j) = F->product(x,operator()(pi,j));  // multiply row to make pivot =1 (change basis in image)
-            for (i=0;i<m;i++) if (pi != i) for (j=n-1;j>=pj;j--)
+            for (i=0;i<m_rows;i++) if (pi != i) for (j=m_cols-1;j>=pj;j--)
                 operator()(i,j) = F->sum(operator()(i,j), F->neg(F->product(operator()(i,pj), operator()(pi,j))));
                 // subtract multiple of pivot row to set the full column to 0  (change basis in image)
             pi++;
@@ -57,10 +46,10 @@ FMatrix& FMatrix::gauss_jordan()
         else
         {
             i = pi+1;
-            while (i != m && operator()(i,pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
+            while (i != m_rows && operator()(i,pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
 
-            if (i != m)   // swap rows pi and i
-                for (j=pj;j<n;j++)
+            if (i != m_rows)   // swap rows pi and i
+                for (j=pj;j<m_cols;j++)
                 {
                     const auto x = operator()(i,j);
                     operator()(i,j) = operator()(pi,j);
@@ -69,7 +58,7 @@ FMatrix& FMatrix::gauss_jordan()
             else pj++;
         }
     }
-    rk = pi;
+    m_rk = pi;
 
     return *this;
 }
@@ -79,20 +68,23 @@ FMatrix FMatrix::nullspace() const
 {
     int i,j;
 
-    FMatrix N(F, n, n-rk);
+    FMatrix N(F, m_cols, m_cols-m_rk);
 
     int col = 0;
 
-    N.col_basis.resize(n-rk);
+    N.m_col_basis.resize(m_cols-m_rk);
 
-    for (i=0;i<n;i++) if (free[i])
+    for (i=0;i<m_cols;i++)
     {
-        int equ = 0;
-        for (j=0;j<n;j++)
-            N(j,col) = (free[j]) ? 0 : F->neg(operator()(equ++,i));
-        N(i,col) = 1;
-        N.col_basis[col] = i;
-        col++;
+        if (m_free[i])
+        {
+            int equ = 0;
+            for (j=0;j<m_cols;j++)
+                N(j,col) = (m_free[j]) ? 0 : F->neg(operator()(equ++,i));
+            N(i,col) = 1;
+            N.m_col_basis[col] = i;
+            col++;
+        }
     }
 
     return N;
@@ -101,10 +93,10 @@ FMatrix FMatrix::nullspace() const
 
 FMatrix FMatrix::transpose() const
 {
-    FMatrix B(F,n,m);
+    FMatrix B(F,m_cols,m_rows);
 
-    for (int i=0;i<n;i++)
-        for (int j=0;j<m;j++)
+    for (int i=0;i<m_cols;i++)
+        for (int j=0;j<m_rows;j++)
             B(i,j) = operator()(j,i);
 
     return B;
@@ -113,9 +105,9 @@ FMatrix FMatrix::transpose() const
 
 void FMatrix::print() const
 {
-    for (int i=0; i<m; i++)
+    for (int i=0; i<m_rows; i++)
     {
-        for (int j=0; j<n; j++) std::cout << F->decode[operator()(i,j)] << " ";
+        for (int j=0; j<m_cols; j++) std::cout << F->decoded( operator()(i,j) ) << " ";
         std::cout << "\n";
     };
     std::cout << "\n";
@@ -123,102 +115,53 @@ void FMatrix::print() const
 
 /*** FMatrix22   ********************************/
 
-int Matrix22::gauss()
+class Matrix22::MessageQueue
 {
-    int i,j,pi,pj;
-    SHORT x;
+    public:
+        struct Message { int a, b, c; };
 
-    pi=pj=0;
-//    for (i=0;i<n;i++) free[i]=1;
-
-    while (pi<m && pj<n)
-    {
-        if ( opLarge(pi,pj) )
+        inline void put(const Message& val)
         {
-//            free[pj]=0;  // x_pj is not a free variable
-            x = F->inverse(opLarge(pi,pj));
+            using namespace std;
 
-            for (j=pj;j<n;j++)
-                opLarge(pi,j) = F->product(x,opLarge(pi,j));  // multiply row to make pivot =1 (change basis in image)
-            for (i=pi+1;i<m;i++) if (opLarge(i,pj) != 0) {
-                const SHORT* pt = &(F->exp[F->log[F->neg(opLarge(i,pj))]]);
-                for (j=n-1;j>=pj;j--) {
-                    if (opLarge(pi,j) != 0) {
-                        SHORT C = pt[F->log[opLarge(pi,j)]];
-                        opLarge(i,j) = F->normalize[opLarge(i,j)+C];
-                    };
-                };
-            };
-
-            pi++;
-            pj++;
+            lock_guard<mutex> lck(mtx);
+            q.push_back(val);
+            cond.notify_one();
         }
-        else
-        {
-            i = pi+1;
-            while (i != m && opLarge(i,pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
 
-            if (i != m)   // swap rows pi and i
-                for (j=pj;j<n;j++)
-                {
-                    x = opLarge(i,j);
-                    opLarge(i,j) = opLarge(pi,j);
-                    opLarge(pi,j) = x;
-                }
-            else pj++;
+        inline void get(Message& val)
+        {   
+            using namespace std;
+
+            unique_lock<mutex> lck(mtx);
+            cond.wait(lck,[this]{ return !q.empty(); });
+            val = q.front();
+            q.pop_front();
         }
-    }
-    rk = pi;
 
-    return rk;
+    private:
+        std::mutex mtx;
+        std::condition_variable cond;
+        std::list<Message> q;
+};
+    
+Matrix22::Matrix22(const Field* F, int rows1, int rows2, int cols1, int cols2)
+    : F(F)
+    , m_rows(rows1*rows2)
+    , m_cols(cols1*cols2)
+    , m_r1(rows1)
+    , m_r2(rows2)
+    , m_c1(cols1)
+    , m_c2(cols2)
+    , m_mq( new MessageQueue() )
+    , m_mq1( new MessageQueue() )
+{
+    m_values.resize((INT)m_rows * (INT)m_cols);
 }
 
-
-int Matrix22::gauss1()
+Matrix22::~Matrix22() 
 {
-    int i,j,pi,pj;
-    int x;
-
-    pi=pj=0;
-    std::vector<int> row(m);
-    for (int i=0; i<m; i++) row[i] = i;
-
-    while (pi<m && pj<n)
-    {
-        if ( opLarge(row[pi],pj) )
-        {
-            for (i=pi+1;i<m;i++) if (opLarge(row[i],pj) != 0) {
-                const SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(row[i],pj))] + F->log[F->inverse(opLarge(row[pi],pj))];
-                for (j=n-1;j>=pj;j--) {
-                    if (opLarge(row[pi],j) != 0) {
-                        SHORT C = pt[F->log[opLarge(row[pi],j)]];
-                        opLarge(row[i],j) = F->normalize[opLarge(row[i],j)+C];
-                    };
-                };
-            };
-
-            pi++;
-            pj++;
-        }
-        else
-        {
-            i = pi+1;
-            while (i < m && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
-
-            if (i < m)   // swap rows pi and i
-                {
-                    x = row[i];
-                    row[i] = row[pi];
-                    row[pi] = x;
-                }
-            else pj++;
-        }
-    }
-    rk = pi;
-
-    return rk;
 }
-
 
 int Matrix22::gauss2()
 {
@@ -226,36 +169,36 @@ int Matrix22::gauss2()
     int x;
 
     pi=pj=0;
-    std::vector<int> row(m);
-    for (int i=0; i<m; i++) row[i] = i;
-    int tasks = thread::hardware_concurrency() - 1;
+    std::vector<int> row(m_rows);
+    for (int i=0; i<m_rows; i++) row[i] = i;
+    int tasks = std::thread::hardware_concurrency() - 1;
 /**************************************************************
 //  spawn threads
 ***************************************************************/
-    thread t[tasks];
-    for (int i=0; i<tasks; i++) t[i] = thread{&Matrix22::loop, this};
+    std::thread t[tasks];
+    for (int i=0; i<tasks; i++) t[i] = std::thread{&Matrix22::loop, this};
 
-    while (pi<m && pj<n)
+    while (pi<m_rows && pj<m_cols)
     {
         if ( opLarge(row[pi],pj) != 0)
         {
             int jobs = 0;
-            Message ms;
+            MessageQueue::Message ms;
             ms.a = row[pi]; ms.b = pj;
-            for (i=pi+1;i<m;i++) if (opLarge(row[i],pj) != 0) {
+            for (i=pi+1;i<m_rows;i++) if (opLarge(row[i],pj) != 0) {
 /**************************************************************
 //  add (pi,pj,i) to task queue
 ***************************************************************/
                 ms.c = row[i];
-                mq.put(ms);
+                m_mq->put(ms);
                 jobs++;
             };
 /**************************************************************
 //  wait for completion (count down jobs)
 ***************************************************************/
             while (jobs > 0){
-                Message ms;
-                mq1.get(ms);
+                MessageQueue::Message ms;
+                m_mq1->get(ms);
                 jobs--;
             };
 
@@ -265,9 +208,9 @@ int Matrix22::gauss2()
         else
         {
             i = pi+1;
-            while (i < m && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
+            while (i < m_rows && opLarge(row[i],pj) == 0) i++; // if pivot = 0, search for nonzero entry in same column
 
-            if (i < m) {   // swap rows pi and i
+            if (i < m_rows) {   // swap rows pi and i
                 x = row[i];
                 row[i] = row[pi];
                 row[pi] = x;
@@ -278,42 +221,46 @@ int Matrix22::gauss2()
 /**************************************************************
 //  send stop messages to queue
 ***************************************************************/
-    Message ms;
+    MessageQueue::Message ms;
     ms.a = ms.b = ms.c = -1;
-    for (int i=0;i<tasks;i++) mq.put(ms);  // stop messages
+    for (int i=0;i<tasks;i++) m_mq->put(ms);  // stop messages
 /**************************************************************
 //  join threads
 ***************************************************************/
     for (int i=0; i<tasks; i++) t[i].join();
 
-    rk = pi;
-    return rk;
+    m_rk = pi;
+    return m_rk;
 }
 
 
 void Matrix22::loop()
 {
     while( true ) {
-        Message ms;
-        mq.get(ms);
+        MessageQueue::Message ms;
+        m_mq->get(ms);
         if (ms.a == -1) return;  // received termination message
-        int pi = ms.a;
-        int pj = ms.b;
-        int i = ms.c;
 
-        const INT r0 = (INT) pi * (INT) n;
-        const INT r1 = (INT )i * (INT) n;
+        const int pi = ms.a;
+        const int pj = ms.b;
+        const int i = ms.c;
 
-        const SHORT* pt = &(F->exp[0]) + F->log[F->neg(opLarge(i,pj))] + F->log[F->inverse(opLarge(pi,pj))];
-        for (int j=n-1;j>=pj;j--) {
-            if ( const auto v1 = A[ r0 + j ] )
+        const INT r0 = (INT) pi * (INT) m_cols;
+        const INT r1 = (INT )i * (INT) m_cols;
+
+        const auto v = opLarge(i,pj);
+
+        const auto offset = F->log( F->neg( v ) ) + F->log( F->inverse( v ) );
+
+        for (int j = m_cols-1; j >= pj; j--)
+        {
+            if ( const auto v1 = m_values[ r0 + j ] )
             {
-                const SHORT C = pt[ F->log[v1] ];
-                auto& v2 = A[ r1 + j ];
-                v2 = F->normalize[ v2 + C ];
+                auto& v2 = m_values[ r1 + j ];
+                v2 = F->normalized( v2 + F->exp( offset + F->log( v1 ) ) );
             };
         };
 
-        mq1.put(ms);  // report completion of task
+        m_mq1->put(ms);  // report completion of task
     }
 }

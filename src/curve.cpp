@@ -9,7 +9,10 @@ using namespace std;
 LineBundle LBmult( const LineBundle& L0, const LineBundle& L1)
 {
     LineBundle res(L0.C, L0.degree + L1.degree);
-    for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->product(L0.ratios[i], L1.ratios[i]);
+
+    for (int i=0; i<L0.C->genus(); i++)
+        res.ratios[i] = L0.C->F->product(L0.ratios[i], L1.ratios[i]);
+
     return res;
 };
 
@@ -17,17 +20,35 @@ LineBundle LBmult( const LineBundle& L0, const LineBundle& L1)
 LineBundle LBinverse(const LineBundle& L0)
 {
     LineBundle res(L0.C, -L0.degree);
-    for (int i=0; i<L0.C->genus; i++) res.ratios[i] = L0.C->F->inverse(L0.ratios[i]);
+    for (int i=0; i<L0.C->genus(); i++)
+        res.ratios[i] = L0.C->F->inverse(L0.ratios[i]);
+
     return res;
 }
 
+Curve::Curve(const Field* F0, int g)
+    : Curve( F0, g, sample_nodes(g, F0->elementCount() ) )
+{
+}
+
+Curve::Curve(const Field* F0, int g, const vector<Node>& Cnodes)
+    : F(F0)
+    , m_genus(g)
+{ 
+    nodes.resize(g); 
+
+    for (int i=0; i<g; i++) {
+        nodes[i].p = F->encoded( Cnodes[i].p );
+        nodes[i].q = F->encoded( Cnodes[i].q );
+    } 
+};
 
 LineBundle Curve::canonical() const
 {
-    const int deg = 2 * genus - 2;
-    FMatrix A(F, 2 * genus - 1, 2 * genus);
+    const int deg = 2 * m_genus - 2;
+    FMatrix A(F, 2 * m_genus - 1, 2 * m_genus);
 
-    for ( int i=0; i<genus; i++)
+    for ( int i=0; i<m_genus; i++)
     {
         int a = 1;
         int b = 1;
@@ -43,9 +64,9 @@ LineBundle Curve::canonical() const
 
     const FMatrix C = A.gauss_jordan().nullspace();
 
-    LineBundle kan(this, 2 * genus - 2);
+    LineBundle kan(this, 2 * m_genus - 2);
 
-    for ( int i=0; i<genus; i++)
+    for ( int i=0; i<m_genus; i++)
     {
         const int res = F->product(F->neg(C(2*i+1,0)), F->inverse(C(2*i,0)));
         kan.ratios[i] = res;
@@ -59,7 +80,7 @@ LineBundle Curve::trivial() const
 {
     LineBundle Lp(this, 0);
 
-    for (int i=0; i<genus; i++) Lp.ratios[i] = 1;
+    for (int i=0; i<m_genus; i++) Lp.ratios[i] = 1;
 
     return Lp;
 }
@@ -72,15 +93,18 @@ LineBundle Curve::pt() const
     int x;
     while (true)
     {
-        double u = rand();
-        x = floor(F->q*u);
+        const double u = rand();
+
+        x = floor(F->elementCount() * u);
         bool success = true;
-        for (int i=0; i<genus; i++)
+        for (int i=0; i<m_genus; i++)
         {
-            if (x == F->decode[nodes[i].p]) success = false;
-            if (x == F->decode[nodes[i].q]) success = false;
+            const auto& node = nodes[i];
+
+            if ( ( x == F->decoded( node.p ) ) || ( x == F->decoded( node.q ) ) )
+                success = false;
         };
-        if (  success == true) break;
+        if ( success == true) break;
     };
 
     return point(x);
@@ -91,9 +115,9 @@ LineBundle Curve::point(int p0) const
 {
     LineBundle Lp(this, 1);
 
-    const int p1 = F->encode[p0];
+    const auto p1 = F->encoded(p0);
 
-    for (int i=0; i<genus; i++)
+    for (int i=0; i<m_genus; i++)
     {
         const int res = F->product(F->sum(nodes[i].p, F->neg(p1)), F->inverse(F->sum(nodes[i].q, F->neg(p1))));
         Lp.ratios[i] = res;
@@ -118,9 +142,9 @@ LineBundle Curve::modify(const int a, const int b) const
 FMatrix Curve::sections(const LineBundle& L) const
 {
     const int deg = L.degree;
-    FMatrix A(F, genus, deg+1);
+    FMatrix A(F, m_genus, deg+1);
 
-    for ( int i=0;i<genus;i++)
+    for ( int i=0;i<m_genus;i++)
     {
         const int k = nodes[i].p;
         const int l = nodes[i].q;
@@ -141,7 +165,7 @@ FMatrix Curve::sections(const LineBundle& L) const
 };
 
 
-std::vector<node> Curve::sample_nodes(const int g, const int q)
+std::vector<Curve::Node> Curve::sample_nodes(const int g, const int q)
 {
     const int n = 2*g;
     const int N = q-2;
@@ -167,11 +191,9 @@ std::vector<node> Curve::sample_nodes(const int g, const int q)
         j--;
     };
 
-    std::vector<node> nodes(g);
-    for (int i=0; i<g; i++) {
-        nodes[i].p = sample[2*i];
-        nodes[i].q = sample[2*i+1];
-    };
+    std::vector<Node> nodes(g);
+    for (int i=0; i<g; i++)
+        nodes[i] = { sample[2*i], sample[2*i+1] };
 
     return nodes;
 }
@@ -180,12 +202,15 @@ std::vector<node> Curve::sample_nodes(const int g, const int q)
 void Curve::print() const
 {
     std::cout << "Curve properties:\n";
-    std::cout << "     genus = " << genus << "\n";
+    std::cout << "     genus = " << m_genus << "\n";
     std::cout << "     Nodes in the following points: \n";
-    for (int i=0; i<genus; i++){
+    for (int i=0; i<m_genus; i++){
+
+        const auto& node = nodes[i];
+
         if (i % 6 == 0) std::cout << "          ";
-        std::cout << "(" << F->decode[nodes[i].p] << "," << F->decode[nodes[i].q] << ")";
-        if (i != genus-1) std::cout << ", ";
+        std::cout << "(" << F->decoded( node.p ) << "," << F->decoded( node.q ) << ")";
+        if (i != m_genus-1) std::cout << ", ";
         if (i % 6 == 5) std::cout << "\n";
     };
     std::cout << "\n\n";
