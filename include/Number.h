@@ -1,5 +1,4 @@
-#ifndef NUMBER_H
-#define NUMBER_H
+#pragma once
 
 #include <vector>
 
@@ -35,6 +34,3 @@ class Field
         std::vector<int> power(std::vector<int>, int);
     friend class Matrix22;
 };
-
-
-#endif // NUMBER_H

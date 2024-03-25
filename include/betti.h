@@ -1,5 +1,4 @@
-#ifndef BETTI_INCLUDED
-#define BETTI_INCLUDED
+#pragma once
 
 #include "curve.h"
 
@@ -25,6 +24,3 @@ class BettiTable
         std::vector<int> chi;
         std::vector<int> coimage;
 };
-
-
-#endif // BETTI_INCLUDED

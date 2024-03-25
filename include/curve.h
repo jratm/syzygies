@@ -1,5 +1,4 @@
-#ifndef CURVE_H
-#define CURVE_H
+#pragma once
 
 #include "xmatrix.h"
 #include <vector>
@@ -63,6 +62,3 @@ class LineBundle
         std::vector<int> ratios;
 //        FMatrix* sections;
 };
-
-
-#endif // CURVE_H

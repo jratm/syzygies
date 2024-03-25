@@ -1,5 +1,4 @@
-#ifndef XMATRIX_H
-#define XMATRIX_H
+#pragma once
 
 #include <vector>
 #include <iostream>
@@ -95,6 +94,3 @@ class FMatrix
     private:
         std::vector<int> A;
 };
-
-
-#endif // XMATRIX_H
