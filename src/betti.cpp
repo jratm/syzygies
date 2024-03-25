@@ -3,12 +3,12 @@
 #include <iostream>
 
 
-int Fgcd(Field*, std::vector <int>, std::vector <int>, int); // return gcd of p1 and p2
-Matrix21 reduced(Matrix21);
-void print_line(int,int,int,int,int);
+static int Fgcd(const Field*, const std::vector <int>&, const std::vector <int>&, int); // return gcd of p1 and p2
+static Matrix21 reduced(const Matrix21&);
+static void print_line(int,int,int,int,int);
 
 
-long choose(int a, int b)
+static long choose(int a, const int b)
 {
     if (a<b) return 0;
     long ret = 1;
@@ -21,7 +21,7 @@ long choose(int a, int b)
 }
 
 
-Matrix21 multTable(LineBundle& L, LineBundle& B)
+static Matrix21 multTable( const LineBundle& L, const LineBundle& B)
 {
     LineBundle LB = LBmult(L,B);
     FMatrix ML = L.C->sections(L);
@@ -59,17 +59,17 @@ Matrix21 multTable(LineBundle& L, LineBundle& B)
     else
         std::cout << "failure\n";
 
-    Matrix21 M0 = reduced(M);
-    Matrix21 M1 = reduced(M0);
+    const Matrix21 M0 = reduced(M);
+    const Matrix21 M1 = reduced(M0);
 
     return M1;
 };
 
 
-Matrix21 reduced(Matrix21 M)
+static Matrix21 reduced(const Matrix21& M)
 {
     FMatrix M1(M.F, M.c, M.a * M.b);
-    int g = M.a;
+    const int g = M.a;
     std::vector<int> exch(M.a);
 
     for (int i=0; i<M.a; i++) exch[i] = M.a - 1 - i;
@@ -99,15 +99,16 @@ Matrix21 reduced(Matrix21 M)
 }
 
 
-BettiTable::BettiTable(Curve* C0)
+BettiTable::BettiTable(const Curve* C0)
+    : C( C0 )
 {
 // calculate Betti table for the canonical bundle
-    C = C0;
-    int g = C->genus;
-    LineBundle L = C->canonical();
+    const int g = C->genus;
+    const LineBundle L = C->canonical();
     initialize(L);
 
-    Matrix21 M1 = multTable(L,L);
+    const Matrix21 M1 = multTable(L,L);
+
     betti[0] = betti[4*g-5] = 1;
 
     for (auto p=1; 2*p<g; p++){
@@ -122,19 +123,19 @@ BettiTable::BettiTable(Curve* C0)
 };
 
 
-BettiTable::BettiTable(Curve* C0, LineBundle L)
+BettiTable::BettiTable(const Curve* C0, const LineBundle& L)
+    : C( C0 )
 {
-    C = C0;
     initialize(L);
 
-    Matrix21 M1 = multTable(L,L);
+    const Matrix21 M1 = multTable(L,L);
     betti[0] = 1;
 
     for (auto p=1; p<h0-2; p++){
-        int r01 = choose(M1.a, p+1);
-        int m1 = choose(M1.a, p) * M1.a;
-        int m2 = choose(M1.a, p-1) * M1.c;
-        int r = m1 - r01 - run(p, M1);
+        const int r01 = choose(M1.a, p+1);
+        const int m1 = choose(M1.a, p) * M1.a;
+        const int m2 = choose(M1.a, p-1) * M1.c;
+        const int r = m1 - r01 - run(p, M1);
         betti[(h0-1)+p] = r;
         betti[(h0-1)*2+(p-1)] = r + chi[p+1];
         print_line(m1, m2, p, 1, r);
@@ -142,13 +143,13 @@ BettiTable::BettiTable(Curve* C0, LineBundle L)
 };
 
 
-void BettiTable::initialize(LineBundle L)
+void BettiTable::initialize(const LineBundle& L)
 {
-    FMatrix ML = L.C->sections(L);
+    const FMatrix ML = L.C->sections(L);
     h0 = ML.n; // h^0 L (= g)
 
-    int g = C->genus;
-    int deg = L.degree;
+    const int g = C->genus;
+    const int deg = L.degree;
 
     betti.resize(4 * (h0-1));
     dim.resize(h0 * h0);
@@ -171,7 +172,7 @@ void BettiTable::initialize(LineBundle L)
 }
 
 
-void BettiTable::print()
+void BettiTable::print() const
 {
 //    int g = C->genus;
 
@@ -199,7 +200,7 @@ void BettiTable::print()
 };
 
 
-int run(int t, Matrix21& M)
+int run(const int t, const Matrix21& M)
 {
 /*
 generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
@@ -271,7 +272,7 @@ generate all combinations, using Algorithm T from Knuth, TAOCP Vol. 4B, p. 359
 }
 
 
-void print_line(int m1, int m2, int p, int q, int r)
+void print_line(const int m1, const int m2, const int p, const int q, const int r)
 {
     cout << "Morphism = ";
     cout.width(5);
@@ -284,10 +285,10 @@ void print_line(int m1, int m2, int p, int q, int r)
 };
 
 
-int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // return gcd of p1 and p2
+int Fgcd(const Field* F, const std::vector <int>& p1, const std::vector <int>& p2, int deg) // return gcd of p1 and p2
 {
-    auto a = p2;
-    auto b = p1;
+    std::vector <int> a = p2;
+    std::vector <int> b = p1;
 
     int lead_a = deg;
     int lead_b = deg;
@@ -305,7 +306,7 @@ int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // retur
 
     //  get remainder of division
         for (int i=lead_a; i>=lead_b; i--){
-            int factor = a[i];
+            const int factor = a[i];
             if (factor != 0)
                 for (int j=0; j<=lead_b; j++)
                     a[i+j-lead_b] = F->sum(a[i+j-lead_b], F->neg( F->product(factor, b[j])));
@@ -321,7 +322,7 @@ int Fgcd(Field* F, std::vector <int> p1, std::vector <int> p2, int deg) // retur
 
 //******* unused so far ********************
 
-int Koszul(int p, int q, LineBundle& L, LineBundle B)
+int Koszul(const int p, const int q, const LineBundle& L, const LineBundle& B)
 {
     LineBundle B1 = B;
 
@@ -334,16 +335,16 @@ int Koszul(int p, int q, LineBundle& L, LineBundle B)
         B1 = LBmult(B1, LBinverse(L));
         qq++;
     };
-    LineBundle B0 = LBmult(B1, LBinverse(L));
+    const LineBundle B0 = LBmult(B1, LBinverse(L));
 
-    Matrix21 M2 = multTable(L,B1);
+    const Matrix21 M2 = multTable(L,B1);
     int r12 = run(p, M2);
-    Matrix21 M1 = multTable(L,B0);
+    const Matrix21 M1 = multTable(L,B0);
     int r01 = run(p+1, M1);
 //    int r01 = choose(M1.a, p+1);
 
-    int m1 = choose(M1.a, p) * M1.c;
-    int m2 = choose(M2.a, p-1) * M2.c;
+    const int m1 = choose(M1.a, p) * M1.c;
+    const int m2 = choose(M2.a, p-1) * M2.c;
 
     print_line(m1, m2, p, q, m1-r12-r01);
 
@@ -351,7 +352,7 @@ int Koszul(int p, int q, LineBundle& L, LineBundle B)
 }
 
 
-int Koszul(int p, int q, LineBundle& L)
+int Koszul(const int p, const int q, const LineBundle& L)
 {
     return Koszul(p, q, L, LBmult(L,LBinverse(L)));
 }

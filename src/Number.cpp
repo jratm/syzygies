@@ -1,12 +1,19 @@
 #include "Number.h"
 #include <iostream>
 
-
-Field::Field(int p0, int f0)
+static inline int multiplied( const int p, const int f )
 {
-    p = p0; f = f0;
-    q = 1;
+    int q = 1;
     for (int i=0; i<f; i++) q *= p;
+
+    return q;
+}
+
+Field::Field(const int p0, const int f0)
+    : p( p0 )
+    , f( f0 )
+    , q( multiplied( p0, f0 ) )
+{
     poly.resize(f+1);
     create();
     generator();
@@ -14,10 +21,10 @@ Field::Field(int p0, int f0)
 };
 
 
-int Field::gcd(std::vector <int> h) // return gcd of poly and h
+int Field::gcd(const std::vector <int>& h) const // return gcd of poly and h
 {
-    auto a = poly;
-    auto b = h;
+    std::vector <int> a = poly;
+    std::vector <int> b = h;
 
     int lead_a = f;
     int lead_b = f-1;
@@ -55,7 +62,7 @@ int Field::gcd(std::vector <int> h) // return gcd of poly and h
 };
 
 
-std::vector<int> Field::power(std::vector <int> h, int n) // return h^n mod poly
+std::vector<int> Field::power(const std::vector <int>& h, const int n) const // return h^n mod poly
 {
     std::vector<int> result(2*f+1); result[0]=1;
     std::vector<int> sq(2*f+1);
@@ -74,7 +81,7 @@ std::vector<int> Field::power(std::vector <int> h, int n) // return h^n mod poly
 };
 
 
-int Field::p_inverse(int x)
+int Field::p_inverse(int x) const
 {
     int a=1, b=0, g=p, u=0, v=1, w=x;
     int q, t;
@@ -92,7 +99,7 @@ int Field::p_inverse(int x)
 }
 
 
-std::vector<int> Field::mult(std::vector<int> a, std::vector<int> b)
+std::vector<int> Field::mult(const std::vector<int>& a, const std::vector<int>& b) const
 {
     std::vector<int> result(2*f+1);
 
@@ -199,7 +206,7 @@ void Field::generator()
 
 void Field::tables()
 {
-    int p1 = 2*p-1; int q1=1;
+    const int p1 = 2*p-1; int q1=1;
     for (int i=0; i<f; i++) q1 *= p1;
     encode.resize(q);  // p-respresentation --> p1-representation
     decode.resize(q1);  // dirty p1-representation --> (clean) p-representation
@@ -254,32 +261,32 @@ void Field::tables()
 };
 
 
-SHORT Field::inverse(SHORT x)
+SHORT Field::inverse(const SHORT x) const
 {
     return exp[q-1-log[x]];
 };
 
 
-SHORT Field::neg(SHORT x)
+SHORT Field::neg(const SHORT x) const
 {
     return negative[x];
 };
 
 
-SHORT Field::product(SHORT x, SHORT y)
+SHORT Field::product(const SHORT x, const SHORT y) const
 {
     if (x == 0 || y == 0) return 0;
     return exp[log[x]+log[y]];
 };
 
 
-SHORT Field::sum(SHORT x, SHORT y)
+SHORT Field::sum(const SHORT x, const SHORT y) const
 {
     return normalize[x+y];
 };
 
 
-void Field::print()
+void Field::print() const
 {
     std::cout << "Base field properties:\n";
     std::cout << "     Characteristc        p = " << p << "\n";
